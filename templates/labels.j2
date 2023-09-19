@@ -1,0 +1,45 @@
+{% if outline_container_labels_traefik_enabled %}
+traefik.enable=true
+
+{% if outline_container_labels_traefik_docker_network %}
+traefik.docker.network={{ outline_container_labels_traefik_docker_network }}
+{% endif %}
+
+{% set middlewares = [] %}
+
+{% if outline_container_labels_traefik_path_prefix != '/' %}
+traefik.http.middlewares.{{ outline_identifier }}-slashless-redirect.redirectregex.regex=({{ outline_container_labels_traefik_path_prefix | quote }})$
+traefik.http.middlewares.{{ outline_identifier }}-slashless-redirect.redirectregex.replacement=${1}/
+{% set middlewares = middlewares + [outline_identifier + '-slashless-redirect'] %}
+{% endif %}
+
+{% if outline_container_labels_traefik_path_prefix != '/' %}
+traefik.http.middlewares.{{ outline_identifier }}-strip-prefix.stripprefix.prefixes={{ outline_container_labels_traefik_path_prefix }}
+{% set middlewares = middlewares + [outline_identifier + '-strip-prefix'] %}
+{% endif %}
+
+{% if outline_container_labels_traefik_additional_response_headers.keys() | length > 0 %}
+{% for name, value in outline_container_labels_traefik_additional_response_headers.items() %}
+traefik.http.middlewares.{{ outline_identifier }}-add-headers.headers.customresponseheaders.{{ name }}={{ value }}
+{% endfor %}
+{% set middlewares = middlewares + [outline_identifier + '-add-headers'] %}
+{% endif %}
+
+traefik.http.routers.{{ outline_identifier }}.rule={{ outline_container_labels_traefik_rule }}
+{% if outline_container_labels_traefik_priority | int > 0 %}
+traefik.http.routers.{{ outline_identifier }}.priority={{ outline_container_labels_traefik_priority }}
+{% endif %}
+traefik.http.routers.{{ outline_identifier }}.service={{ outline_identifier }}
+{% if middlewares | length > 0 %}
+traefik.http.routers.{{ outline_identifier }}.middlewares={{ middlewares | join(',') }}
+{% endif %}
+traefik.http.routers.{{ outline_identifier }}.entrypoints={{ outline_container_labels_traefik_entrypoints }}
+traefik.http.routers.{{ outline_identifier }}.tls={{ outline_container_labels_traefik_tls | to_json }}
+{% if outline_container_labels_traefik_tls %}
+traefik.http.routers.{{ outline_identifier }}.tls.certResolver={{ outline_container_labels_traefik_tls_certResolver }}
+{% endif %}
+
+traefik.http.services.{{ outline_identifier }}.loadbalancer.server.port=3000
+{% endif %}
+
+{{ outline_container_labels_additional_labels }}

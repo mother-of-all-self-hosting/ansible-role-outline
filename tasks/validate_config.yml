@@ -1,0 +1,52 @@
+---
+
+- name: Fail if required outline settings not defined
+  ansible.builtin.fail:
+    msg: >
+      You need to define a required configuration setting (`{{ item }}`).
+  when: "vars[item] == ''"
+  with_items:
+    - outline_identifier
+    - outline_uid
+    - outline_gid
+    - outline_hostname
+    - outline_path_prefix
+    - outline_container_network
+    - outline_environment_variable_secret_key
+    - outline_environment_variable_utils_secret
+    - outline_environment_variable_aws_access_key_id
+    - outline_environment_variable_aws_secret_access_key
+    - outline_environment_variable_aws_region
+    - outline_environment_variable_aws_s3_upload_bucket_name
+
+- name: Fail if encryption key is too short
+  fail:
+    msg: "outline_environment_variable_secret_key needs to be 64 chars long (ideally generated via `openssl rand -hex 32`)"
+  when: outline_environment_variable_secret_key | length != 64
+
+- name: Fail if path prefix is not /
+  fail:
+    msg: >-
+      Outline does not support being hosted at a subpath right now.
+      outline_path_prefix must be set to `/`.
+  when: "outline_path_prefix != '/'"
+
+- when: outline_container_labels_traefik_enabled | bool
+  block:
+    - name: Fail if required outline Traefik settings not defined
+      ansible.builtin.fail:
+        msg: >-
+          You need to define a required configuration setting (`{{ item }}`).
+      when: "vars[item] == ''"
+      with_items:
+        - outline_container_labels_traefik_hostname
+        - outline_container_labels_traefik_path_prefix
+
+    # We ensure it doesn't end with a slash, because we handle both (slash and no-slash).
+    # Knowing that `outline_container_labels_traefik_path_prefix` does not end with a slash
+    # ensures we know how to set these routes up without having to do "does it end with a slash" checks elsewhere.
+    - name: Fail if outline_container_labels_traefik_path_prefix ends with a slash
+      ansible.builtin.fail:
+        msg: >-
+          outline_container_labels_traefik_path_prefix (`{{ outline_container_labels_traefik_path_prefix }}`) must either be `/` or not end with a slash (e.g. `/outline`).
+      when: "outline_container_labels_traefik_path_prefix != '/' and outline_container_labels_traefik_path_prefix[-1] == '/'"

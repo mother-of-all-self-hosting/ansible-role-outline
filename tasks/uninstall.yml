@@ -1,0 +1,25 @@
+---
+
+- name: Check existence of Outline systemd service
+  ansible.builtin.stat:
+    path: "{{ devture_systemd_docker_base_systemd_path }}/{{ outline_identifier }}.service"
+  register: outline_service_stat
+
+- when: outline_service_stat.stat.exists | bool
+  block:
+    - name: Ensure Outline systemd service is stopped
+      ansible.builtin.service:
+        name: "{{ outline_identifier }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+
+    - name: Ensure Outline systemd service does not exists
+      ansible.builtin.file:
+        path: "{{ devture_systemd_docker_base_systemd_path }}/{{ outline_identifier }}.service"
+        state: absent
+
+    - name: Ensure Outline path doesn't exist
+      ansible.builtin.file:
+        path: "{{ outline_base_path }}"
+        state: absent

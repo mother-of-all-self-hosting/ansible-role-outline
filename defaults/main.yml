@@ -1,0 +1,242 @@
+---
+
+# Project source code URL: https://github.com/outline/outline
+
+outline_enabled: true
+
+outline_identifier: outline
+
+outline_uid: ''
+outline_gid: ''
+
+outline_scheme: https
+
+# The hostname at which Outline is served.
+outline_hostname: ''
+
+# The path at which Outline is served.
+# This value must either be `/` or not end with a slash (e.g. `/outline`).
+# As of right now, Outline cannot be hosted at a subpath, so this can only possibly be set to `/`.
+outline_path_prefix: /
+
+outline_version: 0.72.0-0
+
+outline_base_path: "/{{ outline_identifier }}"
+
+outline_container_image: "{{ outline_container_image_registry_prefix }}outlinewiki/outline:{{ outline_container_image_tag }}"
+outline_container_image_registry_prefix: docker.io/
+outline_container_image_tag: "{{ outline_version }}"
+outline_container_image_force_pull: "{{ outline_container_image.endswith(':latest') }}"
+
+# The base container network. It will be auto-created by this role if it doesn't exist already.
+outline_container_network: "{{ outline_identifier }}"
+
+# A list of additional container networks that the container would be connected to.
+# The role does not create these networks, so make sure they already exist.
+# Use this to expose this container to another reverse proxy, which runs in a different container network.
+outline_container_additional_networks: "{{ outline_container_additional_networks_auto + outline_container_additional_networks_custom }}"
+outline_container_additional_networks_auto: []
+outline_container_additional_networks_custom: []
+
+# outline_container_labels_traefik_enabled controls whether labels to assist a Traefik reverse-proxy will be attached to the container.
+# See `../templates/labels.j2` for details.
+#
+# To inject your own other container labels, see `outline_container_labels_additional_labels`.
+outline_container_labels_traefik_enabled: true
+outline_container_labels_traefik_docker_network: "{{ outline_container_network }}"
+outline_container_labels_traefik_hostname: "{{ outline_hostname }}"
+# The path prefix must either be `/` or not end with a slash (e.g. `/outline`).
+outline_container_labels_traefik_path_prefix: "{{ outline_path_prefix }}"
+outline_container_labels_traefik_rule: "Host(`{{ outline_container_labels_traefik_hostname }}`){% if outline_container_labels_traefik_path_prefix != '/' %} && PathPrefix(`{{ outline_container_labels_traefik_path_prefix }}`){% endif %}"
+outline_container_labels_traefik_priority: 0
+outline_container_labels_traefik_entrypoints: web-secure
+outline_container_labels_traefik_tls: "{{ outline_container_labels_traefik_entrypoints != 'web' }}"
+outline_container_labels_traefik_tls_certResolver: default  # noqa var-naming
+
+outline_container_labels_traefik_forwardAuth_address_rd: "{{ outline_scheme }}://{{ outline_hostname }}{{ outline_path_prefix }}"
+
+# Controls which additional headers to attach to all HTTP responses.
+# To add your own headers, use `outline_container_labels_traefik_additional_response_headers_custom`
+outline_container_labels_traefik_additional_response_headers: "{{ outline_container_labels_traefik_additional_response_headers_auto | combine(outline_container_labels_traefik_additional_response_headers_custom) }}"
+outline_container_labels_traefik_additional_response_headers_auto: |
+  {{
+    {}
+    | combine ({'X-XSS-Protection': outline_http_header_xss_protection} if outline_http_header_xss_protection else {})
+    | combine ({'X-Frame-Options': outline_http_header_frame_options} if outline_http_header_frame_options else {})
+    | combine ({'X-Content-Type-Options': outline_http_header_content_type_options} if outline_http_header_content_type_options else {})
+    | combine ({'Content-Security-Policy': outline_http_header_content_security_policy} if outline_http_header_content_security_policy else {})
+    | combine ({'Permission-Policy': outline_http_header_content_permission_policy} if outline_http_header_content_permission_policy else {})
+    | combine ({'Strict-Transport-Security': outline_http_header_strict_transport_security} if outline_http_header_strict_transport_security and outline_container_labels_traefik_tls else {})
+  }}
+outline_container_labels_traefik_additional_response_headers_custom: {}
+
+# outline_container_labels_additional_labels contains a multiline string with additional labels to add to the container label file.
+# See `../templates/labels.j2` for details.
+#
+# Example:
+# outline_container_labels_additional_labels: |
+#   my.label=1
+#   another.label="here"
+outline_container_labels_additional_labels: ''
+
+# A list of extra arguments to pass to the container
+outline_container_extra_arguments: []
+
+# List of systemd services that outline.service depends on
+outline_systemd_required_services_list: "{{ outline_systemd_required_services_list_default + outline_systemd_required_services_list_auto + outline_systemd_required_services_list_custom }}"
+outline_systemd_required_services_list_default: ['docker.service']
+outline_systemd_required_services_list_auto: []
+outline_systemd_required_services_list_custom: []
+
+# Specifies the value of the `X-XSS-Protection` header
+# Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
+#
+# Learn more about it is here:
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection
+# - https://portswigger.net/web-security/cross-site-scripting/reflected
+outline_http_header_xss_protection: "1; mode=block"
+
+# Specifies the value of the `X-Frame-Options` header which controls whether framing can happen.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Frame-Options
+outline_http_header_frame_options: SAMEORIGIN
+
+# Specifies the value of the `X-Content-Type-Options` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+outline_http_header_content_type_options: nosniff
+
+# Specifies the value of the `Content-Security-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
+outline_http_header_content_security_policy: frame-ancestors 'self'
+
+# Specifies the value of the `Permission-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permission-Policy
+outline_http_header_content_permission_policy: "{{ 'interest-cohort=()' if outline_floc_optout_enabled else '' }}"
+
+# Specifies the value of the `Strict-Transport-Security` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+outline_http_header_strict_transport_security: "max-age=31536000; includeSubDomains{{ '; preload' if outline_hsts_preload_enabled else '' }}"
+
+# Controls whether to send a "Permissions-Policy interest-cohort=();" header along with all responses
+#
+# Learn more about what it is here:
+# - https://www.eff.org/deeplinks/2021/03/googles-floc-terrible-idea
+# - https://paramdeo.com/blog/opting-your-website-out-of-googles-floc-network
+# - https://amifloced.org/
+#
+# Of course, a better solution is to just stop using browsers (like Chrome), which participate in such tracking practices.
+# See: `outline_content_permission_policy`
+outline_floc_optout_enabled: true
+
+# Controls if HSTS preloading is enabled
+#
+# In its strongest and recommended form, the [HSTS policy](https://www.chromium.org/hsts) includes all subdomains, and
+# indicates a willingness to be "preloaded" into browsers:
+# `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
+# For more information visit:
+# - https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security
+# - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+# - https://hstspreload.org/#opt-in
+# See: `outline_http_header_strict_transport_security`
+outline_hsts_preload_enabled: false
+
+outline_database_hostname: ''
+outline_database_port: 5432
+outline_database_name: outline
+outline_database_username: outline
+outline_database_password: ''
+outline_database_sslmode: prefer
+
+outline_redis_hostname: ''
+outline_redis_port: 6379
+
+# This must be generated with: `openssl rand -hex 32`
+outline_environment_variable_secret_key: ''
+
+# This may be be generated with `openssl rand -hex 32`, but it may also have another format.
+outline_environment_variable_utils_secret: ''
+
+outline_environment_variable_database_url: "postgres://{{ outline_database_username }}:{{ outline_database_password }}@{{ outline_database_hostname }}:{{ outline_database_port }}/{{ outline_database_name }}"
+outline_environment_variable_pgsslmode: "{{ outline_database_sslmode }}"
+
+outline_environment_variable_redis_url: "redis://{{ outline_redis_hostname }}:{{ outline_redis_port }}"
+
+outline_environment_variable_url: "{{ outline_scheme }}://{{ outline_hostname }}"
+
+outline_environment_variable_aws_access_key_id: ''
+outline_environment_variable_aws_secret_access_key: ''
+outline_environment_variable_aws_region: ''
+outline_environment_variable_aws_s3_accelerate_url: ''
+outline_environment_variable_aws_s3_upload_bucket_url: ''
+outline_environment_variable_aws_s3_upload_bucket_name: ''
+outline_environment_variable_aws_s3_upload_max_size: 26214400
+outline_environment_variable_aws_s3_force_path_style: true
+outline_environment_variable_aws_s3_acl: private
+
+
+outline_environment_variable_slack_client_id: ''
+outline_environment_variable_slack_client_secret: ''
+# Optional value for complete Slack integration with search and posting to channels.
+# See https://wiki.generaloutline.com/share/be25efd1-b3ef-4450-b8e5-c4a4fc11e02a
+outline_environment_variable_slack_verification_token: ''
+# Optional value for complete Slack integration with search and posting to channels.
+# See https://wiki.generaloutline.com/share/be25efd1-b3ef-4450-b8e5-c4a4fc11e02a
+outline_environment_variable_slack_app_id: ''
+# Optional value for complete Slack integration with search and posting to channels.
+# See https://wiki.generaloutline.com/share/be25efd1-b3ef-4450-b8e5-c4a4fc11e02a
+outline_environment_variable_slack_message_actions: true
+
+outline_environment_variable_google_client_id: ''
+outline_environment_variable_google_client_secret: ''
+
+outline_environment_variable_azure_client_id: ''
+outline_environment_variable_azure_client_secret: ''
+outline_environment_variable_azure_resource_app_id: ''
+
+outline_environment_variable_oidc_client_id: ''
+outline_environment_variable_oidc_client_secret: ''
+outline_environment_variable_oidc_auth_uri: ''
+outline_environment_variable_oidc_token_uri: ''
+outline_environment_variable_oidc_userinfo_uri: ''
+outline_environment_variable_oidc_username_claim: preferred_username
+outline_environment_variable_oidc_display_name: OpenID Connect
+outline_environment_variable_oidc_scopes: "openid profile email"
+
+outline_environment_variable_cdn_url: ''
+
+outline_environment_variable_force_https: false
+outline_environment_variable_enable_updates: false
+
+outline_environment_variable_web_concurency: 1
+
+outline_environment_variable_maximum_import_size: 5120000
+
+outline_environment_variable_debug: ''
+
+# Valid values: error, warn, info, http, verbose, debug and silly
+outline_environment_variable_log_level: info
+
+outline_environment_variable_google_analytics_id: ''
+
+outline_environment_variable_sentry_dsn: ''
+outline_environment_variable_sentry_tunnel: ''
+
+# See: https://docs.getoutline.com/s/hosting/doc/smtp-cqCJyZGMIB
+outline_environment_variable_smtp_host: ''
+outline_environment_variable_smtp_port: ''
+outline_environment_variable_smtp_username: ''
+outline_environment_variable_smtp_password: ''
+outline_environment_variable_smtp_from_email: ''
+outline_environment_variable_smtp_reply_email: ''
+outline_environment_variable_smtp_tls_ciphers: ''
+outline_environment_variable_smtp_secure: true
+outline_environment_variable_smtp_name: "{{ outline_hostname }}"
+
+outline_environment_variable_default_language: en_US
+
+outline_environment_variable_rate_limiter_enabled: true
+outline_environment_variable_rate_limiter_requests: 1000
+outline_environment_variable_rate_limiter_duration_window: 60
+
+# Additional environment variables.
+# See: https://raw.githubusercontent.com/outline/outline/main/.env.sample
+outline_environment_variables_additional_variables: ''
