@@ -14,6 +14,23 @@
     - outline_container_network
     - outline_environment_variable_secret_key
     - outline_environment_variable_utils_secret
+
+# We need this validation check, because we initially only supported S3 storage and `outline_environment_variable_file_storage` did not exist.
+# However, we'd like to (and do) default `outline_environment_variable_file_storage` to `local` now.
+# People who are using S3 need to update their configuration to explicitly define their storage mechanism.
+- name: Fail if outline_environment_variable_file_storage is local, but S3 credentials passed
+  fail:
+    msg: >-
+      It seems like your configuration defines S3 credentials, but outline_environment_variable_file_storage is set to 'local' (the new default value).
+      To continue using S3 for storage, add `outline_environment_variable_file_storage: s3` to your configuration.
+  when: outline_environment_variable_file_storage == 'local' and outline_environment_variable_aws_access_key_id != ''
+
+- name: Fail if outline_environment_variable_file_storage is s3, but S3 configuration is incomplete
+  ansible.builtin.fail:
+    msg: >
+      You need to define a required configuration setting (`{{ item }}`).
+  when: "outline_environment_variable_file_storage == 's3' and vars[item] == ''"
+  with_items:
     - outline_environment_variable_aws_access_key_id
     - outline_environment_variable_aws_secret_access_key
     - outline_environment_variable_aws_region

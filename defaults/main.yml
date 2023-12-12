@@ -22,6 +22,7 @@ outline_path_prefix: /
 outline_version: 0.74.0-0
 
 outline_base_path: "/{{ outline_identifier }}"
+outline_data_path: "{{ outline_base_path }}/data"
 
 outline_container_image: "{{ outline_container_image_registry_prefix }}outlinewiki/outline:{{ outline_container_image_tag }}"
 outline_container_image_registry_prefix: docker.io/
@@ -162,6 +163,12 @@ outline_environment_variable_redis_url: "redis://{{ outline_redis_hostname }}:{{
 
 outline_environment_variable_url: "{{ outline_scheme }}://{{ outline_hostname }}"
 
+# Valid keys: local, s3
+# See: https://docs.getoutline.com/s/hosting/doc/file-storage-N4M0T6Ypu7
+outline_environment_variable_file_storage: local
+outline_environment_variable_file_storage_upload_max_size_mb: 25
+
+# S3 configuration, for when `outline_environment_variable_file_storage == s3`
 outline_environment_variable_aws_access_key_id: ''
 outline_environment_variable_aws_secret_access_key: ''
 outline_environment_variable_aws_region: ''

@@ -9,6 +9,7 @@
     group: "{{ outline_gid }}"
   with_items:
     - "{{ outline_base_path }}"
+    - "{{ outline_data_path }}"
 
 - name: Ensure Outline support files installed
   ansible.builtin.template:
