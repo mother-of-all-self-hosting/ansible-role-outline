@@ -19,7 +19,7 @@ outline_hostname: ''
 # As of right now, Outline cannot be hosted at a subpath, so this can only possibly be set to `/`.
 outline_path_prefix: /
 
-outline_version: 0.80.2
+outline_version: 0.81.0
 
 outline_base_path: "/{{ outline_identifier }}"
 outline_data_path: "{{ outline_base_path }}/data"
