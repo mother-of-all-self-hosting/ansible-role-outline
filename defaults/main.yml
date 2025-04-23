@@ -19,6 +19,7 @@ outline_hostname: ''
 # As of right now, Outline cannot be hosted at a subpath, so this can only possibly be set to `/`.
 outline_path_prefix: /
 
+# renovate: datasource=docker depName=outlinewiki/outline versioning=semver
 outline_version: 0.83.0
 
 outline_base_path: "/{{ outline_identifier }}"
