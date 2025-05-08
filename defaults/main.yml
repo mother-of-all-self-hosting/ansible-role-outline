@@ -170,6 +170,8 @@ outline_environment_variable_redis_url: "redis://{{ outline_redis_hostname }}:{{
 
 outline_environment_variable_url: "{{ outline_scheme }}://{{ outline_hostname }}"
 
+outline_environment_variable_port: 3000
+
 # Valid keys: local, s3
 # See: https://docs.getoutline.com/s/hosting/doc/file-storage-N4M0T6Ypu7
 outline_environment_variable_file_storage: local
