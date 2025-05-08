@@ -7,31 +7,29 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-
 # Project source code URL: https://github.com/outline/outline
 
 outline_enabled: true
 
 outline_identifier: outline
+outline_base_path: "/{{ outline_identifier }}"
+outline_data_path: "{{ outline_base_path }}/data"
+
+# renovate: datasource=docker depName=outlinewiki/outline versioning=semver
+outline_version: 0.83.0
 
 outline_uid: ''
 outline_gid: ''
 
-outline_scheme: https
-
 # The hostname at which Outline is served.
 outline_hostname: ''
+
+outline_scheme: https
 
 # The path at which Outline is served.
 # This value must either be `/` or not end with a slash (e.g. `/outline`).
 # As of right now, Outline cannot be hosted at a subpath, so this can only possibly be set to `/`.
 outline_path_prefix: /
-
-# renovate: datasource=docker depName=outlinewiki/outline versioning=semver
-outline_version: 0.83.0
-
-outline_base_path: "/{{ outline_identifier }}"
-outline_data_path: "{{ outline_base_path }}/data"
 
 outline_container_image: "{{ outline_container_image_registry_prefix }}outlinewiki/outline:{{ outline_container_image_tag }}"
 outline_container_image_tag: "{{ outline_version }}"
@@ -93,12 +91,6 @@ outline_container_labels_additional_labels: ''
 # A list of extra arguments to pass to the container
 outline_container_extra_arguments: []
 
-# List of systemd services that outline.service depends on
-outline_systemd_required_services_list: "{{ outline_systemd_required_services_list_default + outline_systemd_required_services_list_auto + outline_systemd_required_services_list_custom }}"
-outline_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
-outline_systemd_required_services_list_auto: []
-outline_systemd_required_services_list_custom: []
-
 # Specifies the value of the `X-XSS-Protection` header
 # Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
 #
@@ -145,6 +137,12 @@ outline_floc_optout_enabled: true
 # - https://hstspreload.org/#opt-in
 # See: `outline_http_header_strict_transport_security`
 outline_hsts_preload_enabled: false
+
+# List of systemd services that outline.service depends on
+outline_systemd_required_services_list: "{{ outline_systemd_required_services_list_default + outline_systemd_required_services_list_auto + outline_systemd_required_services_list_custom }}"
+outline_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
+outline_systemd_required_services_list_auto: []
+outline_systemd_required_services_list_custom: []
 
 outline_database_hostname: ''
 outline_database_port: 5432
