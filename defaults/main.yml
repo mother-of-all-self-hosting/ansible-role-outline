@@ -138,11 +138,14 @@ outline_floc_optout_enabled: true
 # See: `outline_http_header_strict_transport_security`
 outline_hsts_preload_enabled: false
 
-# List of systemd services that outline.service depends on
+# List of systemd services that the Outline systemd service depends on
 outline_systemd_required_services_list: "{{ outline_systemd_required_services_list_default + outline_systemd_required_services_list_auto + outline_systemd_required_services_list_custom }}"
 outline_systemd_required_services_list_default: "{{ [devture_systemd_docker_base_docker_service_name] if devture_systemd_docker_base_docker_service_name else [] }}"
 outline_systemd_required_services_list_auto: []
 outline_systemd_required_services_list_custom: []
+
+# List of systemd services that the Outline systemd service wants
+outline_systemd_wanted_services_list: []
 
 outline_database_hostname: ''
 outline_database_port: 5432
