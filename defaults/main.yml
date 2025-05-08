@@ -1,4 +1,8 @@
-# SPDX-FileCopyrightText: 2023 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023 - 2024 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023 - 2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
+# SPDX-FileCopyrightText: 2025 MASH project contributors
+# SPDX-FileCopyrightText: 2025 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -30,8 +34,10 @@ outline_base_path: "/{{ outline_identifier }}"
 outline_data_path: "{{ outline_base_path }}/data"
 
 outline_container_image: "{{ outline_container_image_registry_prefix }}outlinewiki/outline:{{ outline_container_image_tag }}"
-outline_container_image_registry_prefix: docker.io/
 outline_container_image_tag: "{{ outline_version }}"
+outline_container_image_registry_prefix: "{{ outline_container_image_registry_prefix_upstream }}"
+outline_container_image_registry_prefix_upstream: "{{ outline_container_image_registry_prefix_upstream_default }}"
+outline_container_image_registry_prefix_upstream_default: docker.io/
 outline_container_image_force_pull: "{{ outline_container_image.endswith(':latest') }}"
 
 # The base container network. It will be auto-created by this role if it doesn't exist already.
