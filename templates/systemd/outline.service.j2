@@ -23,19 +23,19 @@ ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_s
 ExecStartPre=-{{ devture_systemd_docker_base_host_command_sh }} -c '{{ devture_systemd_docker_base_host_command_docker }} rm {{ outline_identifier }} 2>/dev/null || true'
 
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
-			--rm \
-			--name={{ outline_identifier }} \
-			--log-driver=none \
-			--user={{ outline_uid }}:{{ outline_gid }} \
-			--cap-drop=ALL \
-			--network={{ outline_container_network }} \
-			--env-file={{ outline_base_path }}/env \
-			--label-file={{ outline_base_path }}/labels \
-			--mount type=bind,src={{ outline_data_path }},dst=/var/lib/outline/data \
-			{% for arg in outline_container_extra_arguments %}
-			{{ arg }} \
-			{% endfor %}
-			{{ outline_container_image }}
+      --rm \
+      --name={{ outline_identifier }} \
+      --log-driver=none \
+      --user={{ outline_uid }}:{{ outline_gid }} \
+      --cap-drop=ALL \
+      --network={{ outline_container_network }} \
+      --env-file={{ outline_base_path }}/env \
+      --label-file={{ outline_base_path }}/labels \
+      --mount type=bind,src={{ outline_data_path }},dst=/var/lib/outline/data \
+      {% for arg in outline_container_extra_arguments %}
+      {{ arg }} \
+      {% endfor %}
+      {{ outline_container_image }}
 
 {% for network in outline_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ outline_identifier }}
