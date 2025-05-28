@@ -3,27 +3,25 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-
 - name: Perform Outline installation tasks
-  block:
-    - name: Validate Outline configuration
-      when: outline_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
-
-    - name: Install Outline
-      when: outline_enabled | bool
-      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
   tags:
     - setup-all
     - setup-outline
     - install-all
     - install-outline
+  block:
+    - name: Validate Outline configuration
+      when: outline_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
+    - name: Install Outline
+      when: outline_enabled | bool
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
 
 - name: Perform Outline uninstallation tasks
+  tags:
+    - setup-all
+    - setup-outline
   block:
     - name: Uninstall Outline
       when: not outline_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
-  tags:
-    - setup-all
-    - setup-outline

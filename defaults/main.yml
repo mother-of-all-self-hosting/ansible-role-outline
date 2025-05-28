@@ -63,7 +63,7 @@ outline_container_labels_traefik_entrypoints: web-secure
 outline_container_labels_traefik_tls: "{{ outline_container_labels_traefik_entrypoints != 'web' }}"
 outline_container_labels_traefik_tls_certResolver: default  # noqa var-naming
 
-outline_container_labels_traefik_forwardAuth_address_rd: "{{ outline_scheme }}://{{ outline_hostname }}{{ outline_path_prefix }}"
+outline_container_labels_traefik_forwardauth_address_rd: "{{ outline_scheme }}://{{ outline_hostname }}{{ outline_path_prefix }}"
 
 # Controls which additional headers to attach to all HTTP responses.
 # To add your own headers, use `outline_container_labels_traefik_additional_response_headers_custom`
@@ -187,7 +187,6 @@ outline_environment_variable_aws_s3_upload_bucket_name: ''
 outline_environment_variable_aws_s3_upload_max_size: 26214400
 outline_environment_variable_aws_s3_force_path_style: true
 outline_environment_variable_aws_s3_acl: private
-
 
 outline_environment_variable_slack_client_id: ''
 outline_environment_variable_slack_client_secret: ''
