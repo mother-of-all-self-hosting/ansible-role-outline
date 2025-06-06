@@ -4,6 +4,7 @@
 
 ---
 - name: Perform Outline installation tasks
+  when: outline_enabled | bool
   tags:
     - setup-all
     - setup-outline
@@ -11,17 +12,15 @@
     - install-outline
   block:
     - name: Validate Outline configuration
-      when: outline_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/validate_config.yml"
     - name: Install Outline
-      when: outline_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/install.yml"
 
 - name: Perform Outline uninstallation tasks
+  when: not outline_enabled | bool
   tags:
     - setup-all
     - setup-outline
   block:
     - name: Uninstall Outline
-      when: not outline_enabled | bool
       ansible.builtin.include_tasks: "{{ role_path }}/tasks/uninstall.yml"
