@@ -38,6 +38,12 @@ outline_container_image_registry_prefix_upstream: "{{ outline_container_image_re
 outline_container_image_registry_prefix_upstream_default: docker.io/
 outline_container_image_force_pull: "{{ outline_container_image.endswith(':latest') }}"
 
+outline_container_image_self_build: false
+outline_container_image_name: "outline/outline:{{ outline_container_repo_version }}"
+outline_container_repo: "https://github.com/outline/outline.git"
+outline_container_repo_version: "{{ 'v' + outline_version if outline_version != 'latest' else 'main' }}"
+outline_container_src_files_path: "{{ outline_base_path }}/docker-src"
+
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 outline_container_network: "{{ outline_identifier }}"
 
