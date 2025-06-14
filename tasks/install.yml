@@ -56,21 +56,21 @@
   block:
     - name: Ensure Outline repository is present on self-build
       ansible.builtin.git:
-        repo: "{{ outline_container_repo }}"
-        version: "{{ outline_container_repo_version }}"
-        dest: "{{ outline_container_src_files_path }}"
+        repo: "{{ outline_container_image_self_build_repo }}"
+        version: "{{ outline_container_image_self_build_repo_version }}"
+        dest: "{{ outline_container_image_self_build_src_files_path }}"
         force: "yes"
       register: outline_git_pull_results
 
     - name: Ensure Outline container image is built
       community.docker.docker_image:
-        name: "{{ outline_container_image_name }}"
+        name: "{{ outline_container_image_self_build_name }}"
         source: build
         force_source: "{{ outline_git_pull_results.changed if ansible_version.major > 2 or ansible_version.minor >= 8 else omit }}"
         force: "{{ omit if ansible_version.major > 2 or ansible_version.minor >= 8 else outline_git_pull_results.changed }}"
         build:
           dockerfile: Dockerfile
-          path: "{{ outline_container_src_files_path }}"
+          path: "{{ outline_container_image_self_build_src_files_path }}"
           pull: true
           args:
 
