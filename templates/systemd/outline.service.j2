@@ -34,7 +34,7 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% for arg in outline_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}
-      {{ outline_container_image }}
+      {{ outline_container_image_self_build_name if outline_container_image_self_build else outline_container_image }}
 
 {% for network in outline_container_additional_networks %}
 ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} network connect {{ network }} {{ outline_identifier }}
