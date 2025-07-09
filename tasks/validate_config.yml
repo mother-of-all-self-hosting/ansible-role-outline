@@ -14,7 +14,7 @@
 
 - name: Fail if required outline settings not defined
   ansible.builtin.fail:
-    msg: >
+    msg: >-
       You need to define a required configuration setting (`{{ item }}`).
   when: "vars[item] == ''"
   with_items:
@@ -39,7 +39,7 @@
 
 - name: Fail if outline_environment_variable_file_storage is s3, but S3 configuration is incomplete
   ansible.builtin.fail:
-    msg: >
+    msg: >-
       You need to define a required configuration setting (`{{ item }}`).
   when: "outline_environment_variable_file_storage == 's3' and vars[item] == ''"
   with_items:
