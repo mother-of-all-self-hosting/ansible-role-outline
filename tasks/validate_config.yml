@@ -16,7 +16,7 @@
   ansible.builtin.fail:
     msg: >-
       You need to define a required configuration setting (`{{ item }}`).
-  when: "vars[item] == ''"
+  when: "lookup('vars', item, default='') | string | length == 0"
   with_items:
     - outline_identifier
     - outline_uid
@@ -67,7 +67,7 @@
       ansible.builtin.fail:
         msg: >-
           You need to define a required configuration setting (`{{ item }}`).
-      when: "vars[item] == ''"
+      when: "lookup('vars', item, default='') | string | length == 0"
       with_items:
         - outline_container_labels_traefik_hostname
         - outline_container_labels_traefik_path_prefix
