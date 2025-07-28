@@ -71,8 +71,14 @@ outline_container_labels_traefik_tls_certResolver: default  # noqa var-naming
 
 outline_container_labels_traefik_forwardauth_address_rd: "{{ outline_scheme }}://{{ outline_hostname }}{{ outline_path_prefix }}"
 
+# Controls which additional headers to attach to all HTTP requests.
+# To add your own custom request headers, use `outline_container_labels_traefik_additional_request_headers_custom`
+outline_container_labels_traefik_additional_request_headers: "{{ outline_container_labels_traefik_additional_request_headers_auto | combine(outline_container_labels_traefik_additional_request_headers_custom) }}"
+outline_container_labels_traefik_additional_request_headers_auto: {}
+outline_container_labels_traefik_additional_request_headers_custom: {}
+
 # Controls which additional headers to attach to all HTTP responses.
-# To add your own headers, use `outline_container_labels_traefik_additional_response_headers_custom`
+# To add your own custom response headers, use `outline_container_labels_traefik_additional_response_headers_custom`
 outline_container_labels_traefik_additional_response_headers: "{{ outline_container_labels_traefik_additional_response_headers_auto | combine(outline_container_labels_traefik_additional_response_headers_custom) }}"
 outline_container_labels_traefik_additional_response_headers_auto: |
   {{
