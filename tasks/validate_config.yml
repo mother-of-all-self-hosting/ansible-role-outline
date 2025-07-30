@@ -12,7 +12,7 @@
   with_items:
     - {'old': 'outline_container_labels_traefik_forwardAuth_address_rd', 'new': 'outline_container_labels_traefik_forwardauth_address_rd'}
 
-- name: Fail if required outline settings not defined
+- name: Fail if required Outline settings not defined
   ansible.builtin.fail:
     msg: >-
       You need to define a required configuration setting (`{{ item }}`).
@@ -56,7 +56,7 @@
 - name: Run if Traefik is enabled
   when: outline_container_labels_traefik_enabled | bool
   block:
-    - name: Fail if required outline Traefik settings not defined
+    - name: Fail if required Outline Traefik settings not defined
       ansible.builtin.fail:
         msg: >-
           You need to define a required configuration setting (`{{ item }}`).
