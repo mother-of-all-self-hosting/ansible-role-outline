@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2023 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023 - 2024 Slavi Pantaleev
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -53,13 +53,6 @@
     msg: "outline_environment_variable_secret_key needs to be 64 chars long (ideally generated via `openssl rand -hex 32`)"
   when: outline_environment_variable_secret_key | length != 64
 
-- name: Fail if path prefix is not /
-  ansible.builtin.fail:
-    msg: >-
-      Outline does not support being hosted at a subpath right now.
-      outline_path_prefix must be set to `/`.
-  when: "outline_path_prefix != '/'"
-
 - name: Run if Traefik is enabled
   when: outline_container_labels_traefik_enabled | bool
   block:
@@ -80,3 +73,11 @@
         msg: >-
           outline_container_labels_traefik_path_prefix (`{{ outline_container_labels_traefik_path_prefix }}`) must either be `/` or not end with a slash (e.g. `/outline`).
       when: "outline_container_labels_traefik_path_prefix != '/' and outline_container_labels_traefik_path_prefix[-1] == '/'"
+
+    - name: Fail if outline_path_prefix is anything other than /
+      ansible.builtin.fail:
+        msg: >-
+          `outline_path_prefix` must be set to `/`.
+          See the comments for the `outline_path_prefix` variable in `defaults/main.yml`.
+          Hosting Outline at a subdirectory may or may not work as expected - it will most likely require additional work.
+      when: "outline_path_prefix != '/'"
