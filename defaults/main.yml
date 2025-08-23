@@ -157,7 +157,10 @@ outline_systemd_required_services_list_auto: []
 outline_systemd_required_services_list_custom: []
 
 # List of systemd services that the Outline systemd service wants
-outline_systemd_wanted_services_list: []
+outline_systemd_wanted_services_list: "{{ outline_systemd_wanted_services_list_default + outline_systemd_wanted_services_list_auto + outline_systemd_wanted_services_list_custom }}"
+outline_systemd_wanted_services_list_default: []
+outline_systemd_wanted_services_list_auto: []
+outline_systemd_wanted_services_list_custom: []
 
 outline_database_hostname: ''
 outline_database_port: 5432
