@@ -53,6 +53,12 @@
     msg: "outline_environment_variable_secret_key needs to be 64 chars long (ideally generated via `openssl rand -hex 32`)"
   when: outline_environment_variable_secret_key | length != 64
 
+- name: Fail if Outline logging level is invalid
+  ansible.builtin.fail:
+    msg: >-
+      outline_environment_variable_log_level must be 'error', 'warn', 'info', 'http', 'verbose', 'debug', or 'silly'
+  when: "outline_environment_variable_log_level not in ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']"
+
 - name: Run if Traefik is enabled
   when: outline_container_labels_traefik_enabled | bool
   block:
