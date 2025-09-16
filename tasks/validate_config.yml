@@ -10,7 +10,7 @@
       Please change your configuration to rename the variable (`{{ item.old }}` -> `{{ item.new }}`).
   when: "lookup('ansible.builtin.varnames', ('^' + item.old + '$'), wantlist=True) | length > 0"
   with_items:
-    - {'old': 'outline_container_labels_traefik_forwardAuth_address_rd', 'new': 'outline_container_labels_traefik_forwardauth_address_rd'}
+    - { "old": "outline_container_labels_traefik_forwardAuth_address_rd", "new": "outline_container_labels_traefik_forwardauth_address_rd" }
     - { "old": "outline_http_header_content_permission_policy", "new": "outline_http_header_permissions_policy" }
 
 - name: Fail if required Outline settings not defined
