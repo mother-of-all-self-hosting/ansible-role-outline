@@ -86,7 +86,7 @@ outline_container_labels_traefik_additional_response_headers_auto: |
     | combine ({'X-XSS-Protection': outline_http_header_xss_protection} if outline_http_header_xss_protection else {})
     | combine ({'X-Content-Type-Options': outline_http_header_content_type_options} if outline_http_header_content_type_options else {})
     | combine ({'Content-Security-Policy': outline_http_header_content_security_policy} if outline_http_header_content_security_policy else {})
-    | combine ({'Permission-Policy': outline_http_header_content_permission_policy} if outline_http_header_content_permission_policy else {})
+    | combine ({'Permissions-Policy': outline_http_header_permissions_policy} if outline_http_header_permissions_policy else {})
     | combine ({'Strict-Transport-Security': outline_http_header_strict_transport_security} if outline_http_header_strict_transport_security and outline_container_labels_traefik_tls else {})
   }}
 outline_container_labels_traefik_additional_response_headers_custom: {}
@@ -119,9 +119,9 @@ outline_http_header_content_type_options: nosniff
 # See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy
 outline_http_header_content_security_policy: frame-ancestors 'self'
 
-# Specifies the value of the `Permission-Policy` header.
-# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permission-Policy
-outline_http_header_content_permission_policy: "{{ 'interest-cohort=()' if outline_floc_optout_enabled else '' }}"
+# Specifies the value of the `Permissions-Policy` header.
+# See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Permissions-Policy
+outline_http_header_permissions_policy: "{{ 'interest-cohort=()' if outline_floc_optout_enabled else '' }}"
 
 # Specifies the value of the `Strict-Transport-Security` header.
 # See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
@@ -135,7 +135,7 @@ outline_http_header_strict_transport_security: "max-age=31536000; includeSubDoma
 # - https://amifloced.org/
 #
 # Of course, a better solution is to just stop using browsers (like Chrome), which participate in such tracking practices.
-# See: `outline_content_permission_policy`
+# See: `outline_http_header_permissions_policy`
 outline_floc_optout_enabled: true
 
 # Controls if HSTS preloading is enabled
