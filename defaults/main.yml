@@ -16,7 +16,7 @@ outline_base_path: "/{{ outline_identifier }}"
 outline_data_path: "{{ outline_base_path }}/data"
 
 # renovate: datasource=docker depName=outlinewiki/outline versioning=semver
-outline_version: 0.84.0
+outline_version: 1.0.0
 
 outline_uid: ''
 outline_gid: ''
