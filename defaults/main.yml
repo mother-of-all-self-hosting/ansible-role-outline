@@ -101,7 +101,9 @@ outline_container_labels_traefik_additional_response_headers_custom: {}
 outline_container_labels_additional_labels: ''
 
 # A list of extra arguments to pass to the container
-outline_container_extra_arguments: []
+outline_container_extra_arguments: "{{ outline_container_extra_arguments_auto + outline_container_extra_arguments_custom }}"
+outline_container_extra_arguments_auto: []
+outline_container_extra_arguments_custom: []
 
 # Specifies the value of the `X-XSS-Protection` header
 # Stops pages from loading when they detect reflected cross-site scripting (XSS) attacks.
