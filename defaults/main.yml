@@ -172,6 +172,9 @@ outline_database_sslmode: prefer
 outline_redis_hostname: ''
 outline_redis_port: 6379
 
+# Specify the timezone
+outline_environment_variables_tz: UTC
+
 # This must be generated with: `openssl rand -hex 32`
 outline_environment_variable_secret_key: ''
 
