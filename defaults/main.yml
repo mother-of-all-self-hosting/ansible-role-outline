@@ -103,7 +103,7 @@ outline_container_labels_additional_labels: "{{ outline_container_labels_additio
 outline_container_labels_additional_labels_auto: {}
 outline_container_labels_additional_labels_custom: {}
 
-# A list of extra arguments to pass to the container
+# A list of extra arguments to pass to the container (`docker create` command)
 outline_container_extra_arguments: "{{ outline_container_extra_arguments_auto + outline_container_extra_arguments_custom }}"
 outline_container_extra_arguments_auto: []
 outline_container_extra_arguments_custom: []
