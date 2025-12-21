@@ -18,11 +18,11 @@ outline_data_path: "{{ outline_base_path }}/data"
 # renovate: datasource=docker depName=outlinewiki/outline versioning=semver
 outline_version: 1.1.0
 
-outline_uid: ''
-outline_gid: ''
+outline_uid: ""
+outline_gid: ""
 
 # The hostname at which Outline is served.
-outline_hostname: ''
+outline_hostname: ""
 
 outline_scheme: https
 
@@ -167,24 +167,24 @@ outline_systemd_wanted_services_list_default: []
 outline_systemd_wanted_services_list_auto: []
 outline_systemd_wanted_services_list_custom: []
 
-outline_database_hostname: ''
+outline_database_hostname: ""
 outline_database_port: 5432
 outline_database_name: outline
 outline_database_username: outline
-outline_database_password: ''
+outline_database_password: ""
 outline_database_sslmode: prefer
 
-outline_redis_hostname: ''
+outline_redis_hostname: ""
 outline_redis_port: 6379
 
 # Specify the timezone
 outline_environment_variables_tz: UTC
 
 # This must be generated with: `openssl rand -hex 32`
-outline_environment_variable_secret_key: ''
+outline_environment_variable_secret_key: ""
 
 # This may be be generated with `openssl rand -hex 32`, but it may also have another format.
-outline_environment_variable_utils_secret: ''
+outline_environment_variable_utils_secret: ""
 
 outline_environment_variable_database_url: "postgres://{{ outline_database_username }}:{{ outline_database_password }}@{{ outline_database_hostname }}:{{ outline_database_port }}/{{ outline_database_name }}"
 outline_environment_variable_pgsslmode: "{{ outline_database_sslmode }}"
@@ -201,45 +201,45 @@ outline_environment_variable_file_storage: local
 outline_environment_variable_file_storage_upload_max_size_mb: 25
 
 # S3 configuration, for when `outline_environment_variable_file_storage == s3`
-outline_environment_variable_aws_access_key_id: ''
-outline_environment_variable_aws_secret_access_key: ''
-outline_environment_variable_aws_region: ''
-outline_environment_variable_aws_s3_accelerate_url: ''
-outline_environment_variable_aws_s3_upload_bucket_url: ''
-outline_environment_variable_aws_s3_upload_bucket_name: ''
+outline_environment_variable_aws_access_key_id: ""
+outline_environment_variable_aws_secret_access_key: ""
+outline_environment_variable_aws_region: ""
+outline_environment_variable_aws_s3_accelerate_url: ""
+outline_environment_variable_aws_s3_upload_bucket_url: ""
+outline_environment_variable_aws_s3_upload_bucket_name: ""
 outline_environment_variable_aws_s3_upload_max_size: 26214400
 outline_environment_variable_aws_s3_force_path_style: true
 outline_environment_variable_aws_s3_acl: private
 
-outline_environment_variable_slack_client_id: ''
-outline_environment_variable_slack_client_secret: ''
+outline_environment_variable_slack_client_id: ""
+outline_environment_variable_slack_client_secret: ""
 # Optional value for complete Slack integration with search and posting to channels.
 # See https://wiki.generaloutline.com/share/be25efd1-b3ef-4450-b8e5-c4a4fc11e02a
-outline_environment_variable_slack_verification_token: ''
+outline_environment_variable_slack_verification_token: ""
 # Optional value for complete Slack integration with search and posting to channels.
 # See https://wiki.generaloutline.com/share/be25efd1-b3ef-4450-b8e5-c4a4fc11e02a
-outline_environment_variable_slack_app_id: ''
+outline_environment_variable_slack_app_id: ""
 # Optional value for complete Slack integration with search and posting to channels.
 # See https://wiki.generaloutline.com/share/be25efd1-b3ef-4450-b8e5-c4a4fc11e02a
 outline_environment_variable_slack_message_actions: true
 
-outline_environment_variable_google_client_id: ''
-outline_environment_variable_google_client_secret: ''
+outline_environment_variable_google_client_id: ""
+outline_environment_variable_google_client_secret: ""
 
-outline_environment_variable_azure_client_id: ''
-outline_environment_variable_azure_client_secret: ''
-outline_environment_variable_azure_resource_app_id: ''
+outline_environment_variable_azure_client_id: ""
+outline_environment_variable_azure_client_secret: ""
+outline_environment_variable_azure_resource_app_id: ""
 
-outline_environment_variable_oidc_client_id: ''
-outline_environment_variable_oidc_client_secret: ''
-outline_environment_variable_oidc_auth_uri: ''
-outline_environment_variable_oidc_token_uri: ''
-outline_environment_variable_oidc_userinfo_uri: ''
+outline_environment_variable_oidc_client_id: ""
+outline_environment_variable_oidc_client_secret: ""
+outline_environment_variable_oidc_auth_uri: ""
+outline_environment_variable_oidc_token_uri: ""
+outline_environment_variable_oidc_userinfo_uri: ""
 outline_environment_variable_oidc_username_claim: preferred_username
 outline_environment_variable_oidc_display_name: OpenID Connect
 outline_environment_variable_oidc_scopes: "openid profile email"
 
-outline_environment_variable_cdn_url: ''
+outline_environment_variable_cdn_url: ""
 
 outline_environment_variable_force_https: false
 outline_environment_variable_enable_updates: false
@@ -248,24 +248,24 @@ outline_environment_variable_web_concurency: 1
 
 outline_environment_variable_maximum_import_size: 5120000
 
-outline_environment_variable_debug: ''
+outline_environment_variable_debug: ""
 
 # Valid values: error, warn, info, http, verbose, debug and silly
 outline_environment_variable_log_level: info
 
-outline_environment_variable_google_analytics_id: ''
+outline_environment_variable_google_analytics_id: ""
 
-outline_environment_variable_sentry_dsn: ''
-outline_environment_variable_sentry_tunnel: ''
+outline_environment_variable_sentry_dsn: ""
+outline_environment_variable_sentry_tunnel: ""
 
 # See: https://docs.getoutline.com/s/hosting/doc/smtp-cqCJyZGMIB
-outline_environment_variable_smtp_host: ''
-outline_environment_variable_smtp_port: ''
-outline_environment_variable_smtp_username: ''
-outline_environment_variable_smtp_password: ''
-outline_environment_variable_smtp_from_email: ''
-outline_environment_variable_smtp_reply_email: ''
-outline_environment_variable_smtp_tls_ciphers: ''
+outline_environment_variable_smtp_host: ""
+outline_environment_variable_smtp_port: ""
+outline_environment_variable_smtp_username: ""
+outline_environment_variable_smtp_password: ""
+outline_environment_variable_smtp_from_email: ""
+outline_environment_variable_smtp_reply_email: ""
+outline_environment_variable_smtp_tls_ciphers: ""
 outline_environment_variable_smtp_secure: true
 outline_environment_variable_smtp_name: "{{ outline_hostname }}"
 
@@ -277,4 +277,4 @@ outline_environment_variable_rate_limiter_duration_window: 60
 
 # Additional environment variables.
 # See: https://raw.githubusercontent.com/outline/outline/main/.env.sample
-outline_environment_variables_additional_variables: ''
+outline_environment_variables_additional_variables: ""
