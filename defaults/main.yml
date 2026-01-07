@@ -97,11 +97,11 @@ outline_container_labels_traefik_additional_response_headers_custom: {}
 #
 # Example:
 # outline_container_labels_additional_labels_custom: |
-#   my.label=1
-#   another.label="here"
-outline_container_labels_additional_labels: "{{ outline_container_labels_additional_labels_auto | combine(outline_container_labels_additional_labels_custom) }}"
-outline_container_labels_additional_labels_auto: {}
-outline_container_labels_additional_labels_custom: {}
+#   - my.label=1
+#   - another.label="here"
+outline_container_labels_additional_labels: "{{ outline_container_labels_additional_labels_auto + outline_container_labels_additional_labels_custom }}"
+outline_container_labels_additional_labels_auto: []
+outline_container_labels_additional_labels_custom: []
 
 # A list of extra arguments to pass to the container (`docker create` command)
 outline_container_extra_arguments: "{{ outline_container_extra_arguments_auto + outline_container_extra_arguments_custom }}"
