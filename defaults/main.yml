@@ -21,14 +21,17 @@ outline_version: 1.1.0
 outline_uid: ""
 outline_gid: ""
 
+# The scheme used for serving Outline.
+outline_scheme: https
+
 # The hostname at which Outline is served.
 outline_hostname: ""
 
-outline_scheme: https
-
 # The path at which Outline is served.
 # This value must either be `/` or not end with a slash (e.g. `/outline`).
-# As of right now, Outline cannot be hosted at a subpath, so this can only possibly be set to `/`.
+#
+# Hosting Outline under a subpath does not seem to be possible due to Outline's
+# technical limitations.
 outline_path_prefix: /
 
 outline_container_image: "{{ outline_container_image_registry_prefix }}outlinewiki/outline:{{ outline_container_image_tag }}"
