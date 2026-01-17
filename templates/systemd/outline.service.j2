@@ -28,6 +28,9 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       --user={{ outline_uid }}:{{ outline_gid }} \
       --cap-drop=ALL \
       --network={{ outline_container_network }} \
+      {% if outline_container_http_host_bind_port %}
+      -p {{ outline_container_http_host_bind_port }}:{{ outline_container_http_port }} \
+      {% endif %}
       --env-file={{ outline_base_path }}/env \
       --label-file={{ outline_base_path }}/labels \
       --mount type=bind,src={{ outline_data_path }},dst=/var/lib/outline/data \

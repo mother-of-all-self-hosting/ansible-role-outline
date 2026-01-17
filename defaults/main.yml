@@ -50,6 +50,14 @@ outline_container_image_self_build_src_files_path: "{{ outline_base_path }}/dock
 # The base container network. It will be auto-created by this role if it doesn't exist already.
 outline_container_network: "{{ outline_identifier }}"
 
+# Specify how the container publishes its HTTP port (as defined by `outline_container_http_port`).
+#
+# Takes an "<ip>:<port>" or "<port>" value (e.g. "127.0.0.1:2586"), or empty string to not expose.
+outline_container_http_host_bind_port: ""
+
+# The port number in the container
+outline_container_http_port: 3000
+
 # A list of additional container networks that the container would be connected to.
 # The role does not create these networks, so make sure they already exist.
 # Use this to expose this container to another reverse proxy, which runs in a different container network.
@@ -195,8 +203,6 @@ outline_environment_variable_pgsslmode: "{{ outline_database_sslmode }}"
 outline_environment_variable_redis_url: "redis://{{ outline_redis_hostname }}:{{ outline_redis_port }}"
 
 outline_environment_variable_url: "{{ outline_scheme }}://{{ outline_hostname }}"
-
-outline_environment_variable_port: 3000
 
 # Valid keys: local, s3
 # See: https://docs.getoutline.com/s/hosting/doc/file-storage-N4M0T6Ypu7
