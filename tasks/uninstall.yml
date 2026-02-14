@@ -29,6 +29,7 @@
       community.docker.docker_network:
         name: "{{ outline_container_network }}"
         state: absent
+      register: outline_network_deletion_result
 
     - name: Ensure Outline container network does not exist via ansible.builtin.command
       when: devture_systemd_docker_base_container_network_creation_method == 'command'
@@ -36,8 +37,8 @@
         cmd: >-
           {{ devture_systemd_docker_base_host_command_docker }} network rm
           {{ outline_container_network }}
-      register: network_deletion_result
-      changed_when: outline_container_network in network_deletion_result.stdout
+      register: outline_network_deletion_result
+      changed_when: outline_container_network in outline_network_deletion_result.stdout
 
     - name: Ensure Outline path does not exist
       ansible.builtin.file:
