@@ -212,12 +212,16 @@ outline_container_cleanup_command: |
   echo "Failed to remove stale container {{ outline_identifier }} after {{ outline_container_cleanup_timeout_seconds }} attempts" >&2;
   exit 1
 
+# Specify database configuration
 outline_database_hostname: ""
 outline_database_port: 5432
-outline_database_name: outline
 outline_database_username: outline
 outline_database_password: ""
-outline_database_sslmode: prefer
+# Specify SSL mode for Postgres database server
+# By default, we expect a local container (without SSL), so attempting SSL connections is not necessary.
+# Valid values: see https://www.postgresql.org/docs/11/libpq-ssl.html#LIBPQ-SSL-SSLMODE-STATEMENTS
+outline_database_sslmode: disable
+outline_database_name: outline
 
 outline_redis_hostname: ""
 outline_redis_port: 6379
