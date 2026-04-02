@@ -1,8 +1,9 @@
-# SPDX-FileCopyrightText: 2023 - 2024 Nikita Chernyi
-# SPDX-FileCopyrightText: 2023 - 2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2023, 2024 Nikita Chernyi
+# SPDX-FileCopyrightText: 2023-2025 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2024 Julian-Samuel Gebühr
 # SPDX-FileCopyrightText: 2024 Sergio Durigan Junior
 # SPDX-FileCopyrightText: 2025 MASH project contributors
-# SPDX-FileCopyrightText: 2025 Suguru Hirahara
+# SPDX-FileCopyrightText: 2025, 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -212,6 +213,12 @@ outline_container_cleanup_command: |
   echo "Failed to remove stale container {{ outline_identifier }} after {{ outline_container_cleanup_timeout_seconds }} attempts" >&2;
   exit 1
 
+########################################################################
+#                                                                      #
+# database                                                             #
+#                                                                      #
+########################################################################
+
 # Specify database configuration
 outline_database_hostname: ""
 outline_database_port: 5432
@@ -222,6 +229,29 @@ outline_database_password: ""
 # Valid values: see https://www.postgresql.org/docs/11/libpq-ssl.html#LIBPQ-SSL-SSLMODE-STATEMENTS
 outline_database_sslmode: disable
 outline_database_name: outline
+
+# Control if the connection to Postgres is made via a Unix socket
+outline_database_socket_enabled: true
+
+# Specify the path to the Postgres Unix socket path on the host (bind-mount source)
+outline_database_socket_path_host: ""
+
+# Specify the path to the Postgres Unix socket path inside the Outline server container
+outline_database_socket_path_container: /run-postgres
+
+outline_environment_variable_database_url: |
+  postgres://{{ outline_database_username }}:{{ outline_database_password }}@
+  {%- if outline_database_socket_enabled -%}
+  localhost/{{ outline_database_name }}?host={{ outline_database_socket_path_container }}
+  {%- else -%}
+  {{ outline_database_hostname }}:{{ outline_database_port }}/{{ outline_database_name }}?sslmode={{ outline_database_sslmode }}
+  {%- endif -%}
+
+########################################################################
+#                                                                      #
+# /database                                                            #
+#                                                                      #
+########################################################################
 
 outline_redis_hostname: ""
 outline_redis_port: 6379
@@ -235,7 +265,6 @@ outline_environment_variable_secret_key: ""
 # This may be be generated with `openssl rand -hex 32`, but it may also have another format.
 outline_environment_variable_utils_secret: ""
 
-outline_environment_variable_database_url: "postgres://{{ outline_database_username }}:{{ outline_database_password }}@{{ outline_database_hostname }}:{{ outline_database_port }}/{{ outline_database_name }}"
 outline_environment_variable_pgsslmode: "{{ outline_database_sslmode }}"
 
 outline_environment_variable_redis_url: "redis://{{ outline_redis_hostname }}:{{ outline_redis_port }}"

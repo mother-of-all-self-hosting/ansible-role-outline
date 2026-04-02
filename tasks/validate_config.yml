@@ -27,16 +27,18 @@
   ansible.builtin.fail:
     msg: >-
       You need to define a required configuration setting (`{{ item }}`).
-  when: "lookup('vars', item, default='') | string | length == 0"
+  when: "item.when | bool and lookup('vars', item.name, default='') | string | length == 0"
   with_items:
-    - outline_identifier
-    - outline_uid
-    - outline_gid
-    - outline_hostname
-    - outline_path_prefix
-    - outline_container_network
-    - outline_environment_variable_secret_key
-    - outline_environment_variable_utils_secret
+    - { "name": "outline_uid", when: true }
+    - { "name": "outline_gid", when: true }
+    - { "name": "outline_hostname", when: true }
+    - { "name": "outline_path_prefix", when: true }
+    - { "name": "outline_container_network", when: true }
+    - { "name": "outline_database_socket_path_host", when: "{{ outline_database_socket_enabled }}" }
+    - { "name": "outline_database_hostname", when: "{{ not outline_database_socket_enabled }}" }
+    - { "name": "outline_database_password", when: true }
+    - { "name": "outline_environment_variable_secret_key", when: true }
+    - { "name": "outline_environment_variable_utils_secret", when: true }
 
 # We need this validation check, because we initially only supported S3 storage and `outline_environment_variable_file_storage` did not exist.
 # However, we'd like to (and do) default `outline_environment_variable_file_storage` to `local` now.
