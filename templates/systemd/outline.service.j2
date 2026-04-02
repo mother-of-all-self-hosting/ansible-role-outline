@@ -37,6 +37,9 @@ ExecStartPre={{ devture_systemd_docker_base_host_command_docker }} create \
       {% if outline_database_socket_enabled and outline_database_socket_path_host != '' %}
       --mount type=bind,src={{ outline_database_socket_path_host }},dst={{ outline_database_socket_path_container }} \
       {% endif %}
+      {% if outline_redis_socket_enabled and outline_redis_socket_path_host != '' %}
+      --mount type=bind,src={{ outline_redis_socket_path_host }},dst={{ outline_redis_socket_path_container }} \
+      {% endif %}
       {% for arg in outline_container_extra_arguments %}
       {{ arg }} \
       {% endfor %}

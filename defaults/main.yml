@@ -253,8 +253,41 @@ outline_environment_variable_database_url: |
 #                                                                      #
 ########################################################################
 
+########################################################################
+#                                                                      #
+# redis                                                                #
+#                                                                      #
+########################################################################
+
+# Specify Redis configuration
 outline_redis_hostname: ""
 outline_redis_port: 6379
+outline_redis_password: ""
+outline_redis_database: 0
+
+# Control if the connection to Redis is made via a Unix socket
+outline_redis_socket_enabled: true
+
+# Specify the path to the Redis Unix socket path on the host (bind-mount source)
+outline_redis_socket_path_host: ""
+
+# Specify the path to the Redis Unix socket path inside the Outline container
+outline_redis_socket_path_container: /run-valkey
+
+outline_redis_socket_path: /valkey.sock
+
+outline_environment_variable_redis_url: |
+  {% if outline_redis_socket_enabled %}
+  unix://{{ outline_redis_socket_path_container }}{{ outline_redis_socket_path }}?db={{ outline_redis_database }}{{ '&password=' + outline_redis_password if outline_redis_password }}
+  {% else %}
+  redis://:{{ outline_redis_password }}@{{ outline_redis_hostname }}:{{ outline_redis_port }}/{{ outline_redis_database }}
+  {%- endif -%}
+
+########################################################################
+#                                                                      #
+# /redis                                                               #
+#                                                                      #
+########################################################################
 
 # Specify the timezone
 outline_environment_variables_tz: UTC
@@ -266,8 +299,6 @@ outline_environment_variable_secret_key: ""
 outline_environment_variable_utils_secret: ""
 
 outline_environment_variable_pgsslmode: "{{ outline_database_sslmode }}"
-
-outline_environment_variable_redis_url: "redis://{{ outline_redis_hostname }}:{{ outline_redis_port }}"
 
 outline_environment_variable_url: "{{ outline_scheme }}://{{ outline_hostname }}"
 
