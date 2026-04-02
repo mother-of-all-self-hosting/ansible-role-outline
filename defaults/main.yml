@@ -254,7 +254,6 @@ outline_environment_variable_aws_region: ""
 outline_environment_variable_aws_s3_accelerate_url: ""
 outline_environment_variable_aws_s3_upload_bucket_url: ""
 outline_environment_variable_aws_s3_upload_bucket_name: ""
-outline_environment_variable_aws_s3_upload_max_size: 26214400
 outline_environment_variable_aws_s3_force_path_style: true
 outline_environment_variable_aws_s3_acl: private
 
@@ -300,21 +299,13 @@ outline_environment_variable_debug: ""
 # Valid values: error, warn, info, http, verbose, debug and silly
 outline_environment_variable_log_level: info
 
-outline_environment_variable_google_analytics_id: ""
-
 outline_environment_variable_sentry_dsn: ""
 outline_environment_variable_sentry_tunnel: ""
 
 # See: https://docs.getoutline.com/s/hosting/doc/smtp-cqCJyZGMIB
-outline_environment_variable_smtp_host: ""
-outline_environment_variable_smtp_port: ""
 outline_environment_variable_smtp_username: ""
 outline_environment_variable_smtp_password: ""
 outline_environment_variable_smtp_from_email: ""
-outline_environment_variable_smtp_reply_email: ""
-outline_environment_variable_smtp_tls_ciphers: ""
-outline_environment_variable_smtp_secure: true
-outline_environment_variable_smtp_name: "{{ outline_hostname }}"
 
 outline_environment_variable_default_language: en_US
 
