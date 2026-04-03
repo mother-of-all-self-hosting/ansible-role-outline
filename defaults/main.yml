@@ -268,13 +268,12 @@ outline_redis_database: 0
 # Control if the connection to Redis is made via a Unix socket
 outline_redis_socket_enabled: true
 
-# Specify the path to the Redis Unix socket path on the host (bind-mount source)
-outline_redis_socket_path_host: ""
-
 # Specify the path to the Redis Unix socket path inside the Outline container
 outline_redis_socket_path_container: /run-valkey
-
 outline_redis_socket_path: /valkey.sock
+
+# Specify the path to the Redis Unix socket path on the host (bind-mount source)
+outline_redis_socket_path_host: ""
 
 outline_environment_variable_redis_url: |
   {% if outline_redis_socket_enabled %}
