@@ -239,7 +239,7 @@ outline_database_socket_path_host: ""
 # Specify the path to the Postgres Unix socket path inside the Outline server container
 outline_database_socket_path_container: /run-postgres
 
-outline_environment_variable_database_url: |
+outline_environment_variable_database_url: |-
   postgres://{{ outline_database_username }}:{{ outline_database_password }}@
   {%- if outline_database_socket_enabled -%}
   localhost/{{ outline_database_name }}?host={{ outline_database_socket_path_container }}
@@ -275,7 +275,7 @@ outline_redis_socket_path: /valkey.sock
 # Specify the path to the Redis Unix socket path on the host (bind-mount source)
 outline_redis_socket_path_host: ""
 
-outline_environment_variable_redis_url: |
+outline_environment_variable_redis_url: |-
   {% if outline_redis_socket_enabled %}
   unix://{{ outline_redis_socket_path_container }}{{ outline_redis_socket_path }}?db={{ outline_redis_database }}{{ '&password=' + outline_redis_password if outline_redis_password }}
   {% else %}
