@@ -236,7 +236,7 @@ outline_database_socket_enabled: true
 # Specify the path to the Postgres Unix socket path on the host (bind-mount source)
 outline_database_socket_path_host: ""
 
-# Specify the path to the Postgres Unix socket path inside the Outline server container
+# Specify the path to the Postgres Unix socket path inside the Outline container
 outline_database_socket_path_container: /run-postgres
 
 outline_environment_variable_database_url: |-
