@@ -265,6 +265,8 @@ outline_redis_port: 6379
 outline_redis_password: ""
 outline_redis_database: 0
 
+outline_redis_is_configured: "{{ outline_redis_hostname !='' or outline_redis_socket_path_host != '' }}"
+
 # Control if the connection to Redis is made via a Unix socket
 outline_redis_socket_enabled: true
 

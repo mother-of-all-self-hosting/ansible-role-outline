@@ -72,6 +72,39 @@
       outline_environment_variable_log_level must be 'error', 'warn', 'info', 'http', 'verbose', 'debug', or 'silly'
   when: "outline_environment_variable_log_level not in ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']"
 
+- name: Run if Outline + Redis integration is enabled
+  when: outline_redis_is_configured | bool
+  block:
+    - name: Fail if both Redis hostname and socket host path for Outline are set
+      ansible.builtin.fail:
+        msg: >-
+          You may need to set either `outline_redis_hostname` or `outline_redis_socket_path_host` to enable Redis integration.
+      when: >-
+        outline_redis_hostname | string | length != 0 and
+        outline_redis_socket_path_host | string | length != 0
+
+    - name: Fail if Redis hostname for Outline is set when Unix socket is enabled
+      ansible.builtin.fail:
+        msg: >-
+          You need to set `outline_redis_socket_path_host` and remove `outline_redis_hostname` to enable Redis integration,
+          when `outline_redis_socket_enabled` is `true`.
+          Check the documentation for details.
+          You may remove the Redis service from `outline_container_additional_networks_custom` if specified.
+      when: >-
+        outline_redis_hostname | string | length != 0 and
+        outline_redis_socket_enabled
+
+    - name: Fail if Redis socket host path for Outline is set when Unix socket is not enabled
+      ansible.builtin.fail:
+        msg: >-
+          You need to set `outline_redis_hostname` and remove `outline_redis_socket_path_host` to enable Redis integration,
+          when `outline_redis_socket_enabled` is `false`.
+          Check the documentation for details.
+          You may also need to specify the Redis service to `outline_container_additional_networks_custom` if it does not exist on the same network.
+      when: >-
+        outline_redis_socket_path_host | string | length != 0 and
+        not outline_redis_socket_enabled
+
 - name: Run if Traefik is enabled
   when: outline_container_labels_traefik_enabled | bool
   block:
