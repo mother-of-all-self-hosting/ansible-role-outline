@@ -37,7 +37,7 @@
         path: "{{ outline_container_image_self_build_src_files_path }}"
         state: absent
 
-    - name: Ensure Outline local data path if empty
+    - name: Ensure Outline local data path does not exist if empty
       ansible.builtin.command:
         cmd: "rmdir {{ outline_data_path }}"
       register: outline_data_path_deletion_result
