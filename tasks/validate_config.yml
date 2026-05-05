@@ -22,6 +22,7 @@
     - { "old": "outline_environment_variable_smtp_name", "new": "<removed>" }
     - { "old": "outline_container_labels_traefik_forwardAuth_address_rd", "new": "outline_container_labels_traefik_forwardauth_address_rd" }
     - { "old": "outline_http_header_content_permission_policy", "new": "outline_http_header_permissions_policy" }
+    - { "old": "outline_container_image_force_pull", "new": "<removed> (the new community.docker.docker_image_pull module handles this natively)" }
 
 - name: Fail if required Outline settings not defined
   ansible.builtin.fail:

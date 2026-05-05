@@ -40,7 +40,6 @@ outline_container_image_tag: "{{ outline_version }}"
 outline_container_image_registry_prefix: "{{ outline_container_image_registry_prefix_upstream }}"
 outline_container_image_registry_prefix_upstream: "{{ outline_container_image_registry_prefix_upstream_default }}"
 outline_container_image_registry_prefix_upstream_default: docker.io/
-outline_container_image_force_pull: "{{ outline_container_image.endswith(':latest') }}"
 
 outline_container_image_self_build: false
 outline_container_image_self_build_name: "outline/outline:{{ outline_container_image_self_build_repo_version }}"
