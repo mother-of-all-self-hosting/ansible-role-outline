@@ -82,6 +82,9 @@ outline_container_labels_traefik_priority: 0
 outline_container_labels_traefik_entrypoints: web-secure
 outline_container_labels_traefik_tls: "{{ outline_container_labels_traefik_entrypoints != 'web' }}"
 outline_container_labels_traefik_tls_certResolver: default  # noqa var-naming
+outline_container_labels_traefik_middleware_basic_auth_enabled: false
+# See: https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/basicauth/
+outline_container_labels_traefik_middleware_basic_auth_users: ""
 
 outline_container_labels_traefik_forwardauth_address_rd: "{{ outline_scheme }}://{{ outline_hostname }}{{ outline_path_prefix }}"
 
