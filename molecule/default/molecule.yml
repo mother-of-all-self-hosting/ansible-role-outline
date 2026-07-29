@@ -1,0 +1,101 @@
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
+# SPDX-FileCopyrightText: 2026 spatterlight
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+    force: true
+driver:
+  name: docker
+platforms:
+  - name: outline-${MOLECULE_DISTRO:-ubuntu2604}-default
+    image: "geerlingguy/docker-${MOLECULE_DISTRO:-ubuntu2604}-ansible:latest"
+    command: ${MOLECULE_DOCKER_COMMAND:-""}
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw
+    cgroupns_mode: host
+    privileged: true
+    pre_build_image: true
+provisioner:
+  name: ansible
+  config_options:
+    defaults:
+      callback_result_format: yaml
+  inventory:
+    group_vars:
+      all:
+        # Helper variables
+        outline_debug_service_enabled: false
+
+        # Variables for Outline
+        outline_uid: 1000
+        outline_gid: 1000
+        outline_scheme: http
+        outline_hostname: localhost
+        outline_container_labels_traefik_enabled: false
+        outline_container_http_host_bind_port: 3000
+        outline_environment_variable_secret_key: secretPQIi8vyGDetLASTWHINTZMChlpC1DLLcsH4giF3x7lsyUaLapRuQBYZk7q
+        outline_environment_variable_utils_secret: secretPQIi8vyGDetLASTWHINTZMChlpC1DLLcsH4giF3x7lsyUaLapRuQBYZk7q
+        outline_environment_variable_url: http://localhost:3000
+
+        # Variables required for Outline to connect to the Postgres database (via Unix socket)
+        outline_database_username: my_database_username
+        outline_database_password: my_database_password
+        outline_database_sslmode: disable
+        outline_database_name: outline
+        outline_database_socket_enabled: true
+        outline_database_socket_path_host: "{{ postgres_run_path }}"
+        outline_systemd_required_services_list_auto: |
+          {{
+            (['postgres.service'])
+          }}
+
+        # Variables required for Outline to connect to the Valkey data-store (via Unix socket)
+        outline_redis_socket_enabled: true
+        outline_redis_socket_path_host: "{{ valkey_run_path }}"
+        outline_systemd_required_services_list_custom:
+          - "{{ valkey_identifier }}.service"
+
+        # Variables for Postgres
+        postgres_uid: 1000
+        postgres_gid: 1000
+        postgres_connection_password: postgres_password
+        postgres_container_unix_socket_enabled: true
+        postgres_managed_databases: |
+          {{
+            [{
+              'name': outline_database_name,
+              'username': outline_database_username,
+              'password': outline_database_password,
+            }]
+          }}
+
+        # Variables for Valkey
+        valkey_uid: 1000
+        valkey_gid: 1000
+        valkey_arch: amd64
+  env:
+    # Workaround for https://github.com/ansible/molecule/issues/4391
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..:/.ansible/roles:/usr/share/ansible/roles:/etc/ansible/roles:~/.ansible/roles
+scenario:
+  # See: https://docs.ansible.com/projects/molecule/configuration/?h=test_sequence#scenario
+  test_sequence:
+    - dependency
+    - cleanup
+    - destroy
+    - syntax
+    - create
+    - prepare
+    - converge
+    # Disable idempotence test for now due to ansible-role-postgres
+    # - idempotence
+    - side_effect
+    - verify
+    - cleanup
+    - destroy
+verifier:
+  name: ansible
