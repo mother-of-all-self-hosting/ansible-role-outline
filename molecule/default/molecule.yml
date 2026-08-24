@@ -38,8 +38,11 @@ provisioner:
         outline_hostname: localhost
         outline_container_labels_traefik_enabled: false
         outline_container_http_host_bind_port: 3000
-        outline_environment_variable_secret_key: secretPQIi8vyGDetLASTWHINTZMChlpC1DLLcsH4giF3x7lsyUaLapRuQBYZk7q
-        outline_environment_variable_utils_secret: secretPQIi8vyGDetLASTWHINTZMChlpC1DLLcsH4giF3x7lsyUaLapRuQBYZk7q
+        # Outline wants 64 hexadecimal characters here, not merely 64
+        # characters, and exits with `SECRET_KEY must be a hexadecimal number`
+        # given anything else.
+        outline_environment_variable_secret_key: 7d2f4a9c1e8b350647a2c9f1d5b8e036a4c7f291d8b3e560a9c2f4d7b1e805a3
+        outline_environment_variable_utils_secret: 2b6e9d4a7f1c83052e9b6d4a7f1c8305b2e6d9a4f7c1385026b9e4d7a1f5c830
         outline_environment_variable_url: http://localhost:3000
 
         # Variables required for Outline to connect to the Postgres database (via Unix socket)
