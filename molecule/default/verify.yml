@@ -1,14 +1,47 @@
 # SPDX-FileCopyrightText: 2026 Suguru Hirahara
 # SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 ---
-- name: Verify Outline systemd service
+- name: Verify Outline
   hosts: all
   become: true
   gather_facts: false
+
+  vars:
+    outline_verify_base_url: "http://localhost:{{ outline_container_http_host_bind_port }}"
+
+    # The command prefix that runs a single SQL statement inside the Postgres
+    # container this scenario started, printing bare values with no headers.
+    #
+    # The docker CLI is invoked directly here and below: the ansible-lint
+    # environment used by pre-commit has no collections installed, so
+    # community.docker.* would fail the playbook syntax check.
+    outline_verify_psql_command: >-
+      docker exec --env=PGPASSWORD={{ outline_database_password | quote }}
+      {{ postgres_identifier | default('postgres') }}
+      psql -U {{ outline_database_username | quote }}
+      -d {{ outline_database_name | quote }} -tAc
+
+    outline_verify_tables_query: "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'"
+
+    # Outline records every applied migration in this Sequelize bookkeeping
+    # table. The name is capitalized, hence the inner double quotes.
+    outline_verify_migrations_query: 'SELECT count(*) FROM "SequelizeMeta"'
+
   tasks:
+    # Role defaults are not in scope in a verify play, but the version that
+    # Renovate bumps lives in them and is what the running Outline is checked
+    # against below. Only leaf literals may be read out of this namespace -
+    # anything Jinja-derived (`outline_container_image_tag` and friends) would
+    # be resolved against an empty one.
+    - name: Load the Outline role defaults
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
+        name: outline_defaults
+
     - name: Wait for Outline service to become active (up to 180s)
       ansible.builtin.systemd:
         name: outline.service
@@ -17,41 +50,182 @@
       retries: 36
       delay: 5
 
+    # This is a gate, not evidence. The unit is `Type=simple` with
+    # `Restart=always`, so systemd calls it active the moment `docker start`
+    # is running, long before Outline has migrated its schema and bound a
+    # listener - and an Outline that crashes on every start still cycles back
+    # through `active` between restarts. Everything that actually proves
+    # something comes after this.
     - name: Assert Outline service is active
       ansible.builtin.assert:
         that: outline_service.status.ActiveState == 'active'
         fail_msg: "outline.service not active ({{ outline_service.status.ActiveState }})"
         success_msg: "outline.service is active"
 
+    # The container is created with `--log-driver=none`, so `docker logs` is
+    # empty by design; the unit runs `docker start --attach`, which puts the
+    # application's output into the journal instead.
     - name: Retrieve Outline service log for debugging
       when: outline_debug_service_enabled | bool
       ansible.builtin.command:
         cmd: journalctl -xeu outline.service
       changed_when: false
 
-# localhost:3000 does not really seem to be available
-# cf. https://github.com/outline/outline/discussions/6024
-# TODO: implement the endpoint test
-#
-#   - name: Wait for Outline HTTP endpoint to respond (up to 10m)
-#     ansible.builtin.uri:
-#       url: "http://localhost:3000/"
-#       method: GET
-#       status_code: [200, 301, 302]
-#       follow_redirects: none
-#     register: outline_endpoint
-#     until: outline_endpoint.status in [200, 301, 302]
-#     retries: 120
-#     delay: 5
+    # `/_health` is the only endpoint here that cannot lie, and only its body
+    # can be trusted. Outline serves a single-page application, and every path
+    # it does not recognize - `/healthz` and any typo alike - is answered with
+    # the same 200 and the same HTML shell, so a status code proves nothing at
+    # all. `/_health` answers with the two bytes `OK`, and it is what the
+    # image's own HEALTHCHECK probes.
+    #
+    # Reaching it also means the schema is migrated: Outline runs its
+    # migrations before it starts the web service. Started with no
+    # DATABASE_URL at all it does not serve an error page - it throws and
+    # exits 1 immediately.
+    - name: Wait for the Outline health endpoint to answer (up to 10m)
+      ansible.builtin.uri:
+        url: "{{ outline_verify_base_url }}/_health"
+        method: GET
+        follow_redirects: none
+        status_code: [200, 404, 500, 502, 503]
+        return_content: true
+      register: outline_health
+      until: outline_health.status == 200 and outline_health.content | trim == 'OK'
+      retries: 120
+      delay: 5
 
-#   - name: Assert Outline HTTP endpoint responds
-#     ansible.builtin.assert:
-#       that: outline_endpoint.status in [200, 301, 302]
-#       fail_msg: "Outline did not respond as expected ({{ outline_endpoint.status | default('no response') }})"
-#       success_msg: "Outline responded with {{ outline_endpoint.status }}"
+    - name: Assert the Outline health endpoint reports OK
+      ansible.builtin.assert:
+        that: outline_health.content | trim == 'OK'
+        fail_msg: "The Outline health endpoint answered '{{ outline_health.content | default('nothing') | trim }}'"
+        success_msg: "The Outline health endpoint reports OK"
 
-    - name: Show Outline systemd service status summary
+    # Proof that the health endpoint above is worth anything: an unrecognized
+    # path comes back as the single-page application shell, which is what
+    # `/_health` would also look like if it were not a real route.
+    - name: Request a path Outline does not route
+      ansible.builtin.uri:
+        url: "{{ outline_verify_base_url }}/molecule-no-such-path"
+        method: GET
+        follow_redirects: none
+        status_code: [200]
+        return_content: true
+      register: outline_unrouted
+
+    - name: Assert an unrouted path is answered with the application shell rather than OK
+      ansible.builtin.assert:
+        that:
+          - outline_unrouted.content | trim != 'OK'
+          - "'<div id=\"root\"></div>' in outline_unrouted.content"
+        fail_msg: "An unrouted path did not render the Outline application shell"
+        success_msg: "An unrouted path renders the application shell, so the health endpoint's body is meaningful"
+
+    # Outline reports no version over HTTP, so the running container is asked
+    # for the version of the code it is actually executing. An image label
+    # would only restate what was pulled; package.json is what `node` runs,
+    # which also covers the self-build case.
+    - name: Query the version of the running Outline
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ outline_defaults.outline_identifier }}"
+          - node
+          - -e
+          - |
+            console.log(require("/opt/outline/package.json").version)
+      register: outline_version_command
+      changed_when: false
+
+    - name: Assert the running Outline is the version this role installs
+      ansible.builtin.assert:
+        that: outline_version_command.stdout | trim == outline_defaults.outline_version
+        fail_msg: "Outline reports {{ outline_version_command.stdout | trim }}, expected {{ outline_defaults.outline_version }}"
+        success_msg: "Outline reports {{ outline_version_command.stdout | trim }}"
+
+    # Everything above would read the same if Outline had quietly migrated into
+    # some other database, so the schema is looked up in the container this
+    # scenario started, at the other end of the Unix socket the role
+    # bind-mounts.
+    - name: Count the Outline tables in the Postgres container
+      ansible.builtin.command:
+        cmd: "{{ outline_verify_psql_command }} {{ outline_verify_tables_query | quote }}"
+      register: outline_db_tables
+      changed_when: false
+
+    - name: Assert Outline migrated its schema into that database
+      ansible.builtin.assert:
+        that: outline_db_tables.stdout | trim | int > 0
+        fail_msg: "The database '{{ outline_database_name }}' holds no tables - Outline is not using it"
+        success_msg: "The database '{{ outline_database_name }}' holds {{ outline_db_tables.stdout | trim }} tables"
+
+    # A non-empty bookkeeping table is the migration run itself leaving a
+    # trace, rather than a schema that merely happens to have tables in it.
+    - name: Count the migrations Outline recorded in the Postgres container
+      ansible.builtin.command:
+        cmd: "{{ outline_verify_psql_command }} {{ outline_verify_migrations_query | quote }}"
+      register: outline_db_migrations
+      changed_when: false
+
+    - name: Assert Outline recorded its migrations in that database
+      ansible.builtin.assert:
+        that: outline_db_migrations.stdout | trim | int > 0
+        fail_msg: "Outline recorded no migrations in '{{ outline_database_name }}'"
+        success_msg: "Outline recorded {{ outline_db_migrations.stdout | trim }} migrations in '{{ outline_database_name }}'"
+
+    # The other data-store this role wires up, over its own Unix socket.
+    # Outline creates its job queues on startup, so these keys existing is the
+    # Valkey connection working rather than merely being configured - and a
+    # broken REDIS_URL does not necessarily stop Outline from answering
+    # `/_health`, which is why this is asked separately.
+    - name: List the Outline job-queue keys in the Valkey container
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ valkey_identifier | default('valkey') }}"
+          - valkey-cli
+          - --scan
+          - --pattern
+          - "bull:*"
+      register: outline_valkey_keys
+      changed_when: false
+
+    - name: Assert Outline created its job queues in that Valkey
+      ansible.builtin.assert:
+        that: outline_valkey_keys.stdout_lines | length > 0
+        fail_msg: "Valkey holds no 'bull:*' keys - Outline is not using it"
+        success_msg: "Valkey holds {{ outline_valkey_keys.stdout_lines | length }} 'bull:*' keys"
+
+    # This scenario configures no sign-in provider, and Outline is content to
+    # run without one. Asking it which providers it offers ties the answer to
+    # this scenario's configuration rather than to a default, and it is the
+    # same endpoint the `oidc` scenario watches a provider appear on.
+    - name: Ask Outline which sign-in providers it offers
+      ansible.builtin.uri:
+        url: "{{ outline_verify_base_url }}/api/auth.config"
+        method: POST
+        body_format: json
+        body: {}
+        status_code: [200]
+        return_content: true
+      register: outline_auth_config
+
+    - name: Assert Outline offers no sign-in provider in this scenario
+      ansible.builtin.assert:
+        that: outline_auth_config.json.data.providers | length == 0
+        fail_msg: >-
+          Outline offers sign-in providers this scenario did not configure:
+          {{ outline_auth_config.json.data.providers | map(attribute='name') | join(', ') }}
+        success_msg: "Outline offers no sign-in provider, as this scenario configures none"
+
+    - name: Show Outline verification summary
       ansible.builtin.debug:
         msg:
           - "Outline systemd: {{ outline_service.status.ActiveState }}"
-#         - "Outline HTTP: {{ outline_endpoint.status }}"
+          - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
+          - "Outline version: {{ outline_version_command.stdout | trim }}"
+          - "Postgres tables: {{ outline_db_tables.stdout | trim }}"
+          - "Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
+          - "Valkey job-queue keys: {{ outline_valkey_keys.stdout_lines | length }}"
+          - "Sign-in providers: {{ outline_auth_config.json.data.providers | length }}"
