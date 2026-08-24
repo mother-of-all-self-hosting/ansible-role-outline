@@ -1,5 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Patch releases are deliberately not automerged here, unlike in most other roles in this fleet.",
+    "Outline applies its database migrations automatically at container start, forward-only, and its patch releases do ship them: 1.8.0 -> 1.8.1 added increase-url-column-lengths, and 1.9.1 -> 1.9.2 added add-mcp-to-search-queries-source.",
+    "An automerged patch would therefore rewrite the schema of the database holding the users' documents, unattended and with no way back short of restoring a backup."
+  ],
   "extends": [
     "github>mother-of-all-self-hosting/renovate-config#v1.0.0"
   ]
