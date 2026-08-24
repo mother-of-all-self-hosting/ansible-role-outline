@@ -62,10 +62,17 @@
     - outline_environment_variable_aws_region
     - outline_environment_variable_aws_s3_upload_bucket_name
 
-- name: Fail if encryption key is too short
+# Outline does not merely want 64 characters here, it wants 64 hexadecimal
+# ones: given anything else it prints `SECRET_KEY must be a hexadecimal
+# number` and exits before serving anything. Under this role's `Restart=always`
+# unit that becomes a crash loop rather than a visible failure, so the shape is
+# checked here, where it can still be reported to the person running the play.
+- name: Fail if encryption key is not 64 hexadecimal characters
   ansible.builtin.fail:
-    msg: "outline_environment_variable_secret_key needs to be 64 chars long (ideally generated via `openssl rand -hex 32`)"
-  when: outline_environment_variable_secret_key | length != 64
+    msg: >-
+      outline_environment_variable_secret_key needs to be 64 hexadecimal characters
+      (generate one via `openssl rand -hex 32`)
+  when: outline_environment_variable_secret_key is not match('^[0-9a-fA-F]{64}$')
 
 - name: Fail if Outline logging level is invalid
   ansible.builtin.fail:
