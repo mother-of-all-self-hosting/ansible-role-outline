@@ -65,6 +65,10 @@
           - "--name={{ outline_molecule_stub_container_name }}"
           - "--network={{ outline_container_network }}"
           - "--entrypoint=node"
+          # Outline's image carries a HEALTHCHECK that probes Outline's own
+          # port. Inherited by the stub it would only ever report unhealthy,
+          # which is noise rather than information.
+          - --no-healthcheck
           - "--env=STUB_PORT={{ outline_molecule_stub_port }}"
           - "--env=STUB_CLIENT_ID={{ outline_environment_variable_oidc_client_id }}"
           - "--env=STUB_CLIENT_SECRET={{ outline_environment_variable_oidc_client_secret }}"
