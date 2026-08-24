@@ -290,25 +290,30 @@
           '{{ outline_db_user_row.stdout | trim | default('nothing at all', true) }}'
         success_msg: "The users row for {{ outline_molecule_expected_email }} records {{ outline_db_user_row.stdout | trim }}"
 
-    # The other data-store this role wires up, over its own Unix socket.
-    - name: List the Outline job-queue keys in the Valkey container
+    # The other data-store this role wires up, over its own Unix socket, asked
+    # from the connection side rather than the key side. Outline's job-queue
+    # keys come and go as queues drain, so their presence is a matter of
+    # timing; the connections it opens at startup and names after itself with
+    # CLIENT SETNAME stay for as long as it runs.
+    - name: List the clients connected to the Valkey container
       ansible.builtin.command:
         argv:
           - docker
           - exec
           - "{{ valkey_identifier | default('valkey') }}"
           - valkey-cli
-          - --scan
-          - --pattern
-          - "bull:*"
-      register: outline_valkey_keys
+          - CLIENT
+          - LIST
+      register: outline_valkey_clients
       changed_when: false
 
-    - name: Assert Outline created its job queues in that Valkey
+    - name: Assert Outline is connected to that Valkey
       ansible.builtin.assert:
-        that: outline_valkey_keys.stdout_lines | length > 0
-        fail_msg: "Valkey holds no 'bull:*' keys - Outline is not using it"
-        success_msg: "Valkey holds {{ outline_valkey_keys.stdout_lines | length }} 'bull:*' keys"
+        that: "'name=outline:' in outline_valkey_clients.stdout"
+        fail_msg: "No client named 'outline:...' is connected to Valkey - Outline is not using it"
+        success_msg: >-
+          Outline holds {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}
+          named connections to Valkey
 
     - name: Show Outline verification summary
       ansible.builtin.debug:
@@ -322,4 +327,4 @@
           - "Postgres tables: {{ outline_db_tables.stdout | trim }}"
           - "Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
           - "Postgres users row: {{ outline_db_user_row.stdout | trim }}"
-          - "Valkey job-queue keys: {{ outline_valkey_keys.stdout_lines | length }}"
+          - "Valkey connections named by Outline: {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}"

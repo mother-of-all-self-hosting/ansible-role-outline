@@ -173,29 +173,34 @@
         fail_msg: "Outline recorded no migrations in '{{ outline_database_name }}'"
         success_msg: "Outline recorded {{ outline_db_migrations.stdout | trim }} migrations in '{{ outline_database_name }}'"
 
-    # The other data-store this role wires up, over its own Unix socket.
-    # Outline creates its job queues on startup, so these keys existing is the
-    # Valkey connection working rather than merely being configured - and a
-    # broken REDIS_URL does not necessarily stop Outline from answering
-    # `/_health`, which is why this is asked separately.
-    - name: List the Outline job-queue keys in the Valkey container
+    # The other data-store this role wires up, over its own Unix socket, asked
+    # from the connection side rather than the key side. Outline's job-queue
+    # keys come and go as queues drain, so their presence is a matter of
+    # timing; the connections it opens at startup and names after itself with
+    # CLIENT SETNAME stay for as long as it runs, and no other client would
+    # introduce them.
+    #
+    # This is asked separately because a broken REDIS_URL does not necessarily
+    # stop Outline from answering `/_health`.
+    - name: List the clients connected to the Valkey container
       ansible.builtin.command:
         argv:
           - docker
           - exec
           - "{{ valkey_identifier | default('valkey') }}"
           - valkey-cli
-          - --scan
-          - --pattern
-          - "bull:*"
-      register: outline_valkey_keys
+          - CLIENT
+          - LIST
+      register: outline_valkey_clients
       changed_when: false
 
-    - name: Assert Outline created its job queues in that Valkey
+    - name: Assert Outline is connected to that Valkey
       ansible.builtin.assert:
-        that: outline_valkey_keys.stdout_lines | length > 0
-        fail_msg: "Valkey holds no 'bull:*' keys - Outline is not using it"
-        success_msg: "Valkey holds {{ outline_valkey_keys.stdout_lines | length }} 'bull:*' keys"
+        that: "'name=outline:' in outline_valkey_clients.stdout"
+        fail_msg: "No client named 'outline:...' is connected to Valkey - Outline is not using it"
+        success_msg: >-
+          Outline holds {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}
+          named connections to Valkey
 
     # This scenario configures no sign-in provider, and Outline is content to
     # run without one. Asking it which providers it offers ties the answer to
@@ -227,5 +232,5 @@
           - "Outline version: {{ outline_version_command.stdout | trim }}"
           - "Postgres tables: {{ outline_db_tables.stdout | trim }}"
           - "Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
-          - "Valkey job-queue keys: {{ outline_valkey_keys.stdout_lines | length }}"
+          - "Valkey connections named by Outline: {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}"
           - "Sign-in providers: {{ outline_auth_config.json.data.providers | length }}"
