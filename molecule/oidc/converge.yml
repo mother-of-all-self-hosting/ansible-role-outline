@@ -1,0 +1,141 @@
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
+# SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Include roles for Outline OIDC Molecule tests
+  hosts: all
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Load the Outline Molecule OIDC credentials
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/credentials.yml"
+
+    - name: Include roles for Outline OIDC Molecule tests
+      ansible.builtin.include_role:
+        name: "{{ role_name }}"
+        public: true
+      loop:
+        - com.devture.ansible.role.playbook_help
+        - com.devture.ansible.role.systemd_docker_base
+        - ansible-role-postgres
+        - ansible-role-valkey
+        - "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"
+      loop_control:
+        loop_var: role_name
+
+    # The stub joins the container network that the role creates, which is why
+    # it is started here rather than in `prepare.yml` - and why these tasks
+    # live in this play, where the role's own variables are in scope.
+    #
+    # Unlike a reverse-proxy authenticator, Outline does not talk to its
+    # identity provider while starting up: it accepts the OIDC endpoints it is
+    # given without checking them, and only contacts them when someone signs
+    # in. The stub therefore has to be answering by the time `verify.yml` runs,
+    # not by the time Outline starts.
+    - name: Query the state of the Outline Molecule OIDC stub container
+      ansible.builtin.command:
+        argv:
+          - docker
+          - inspect
+          - "{{ outline_molecule_stub_container_name }}"
+      register: outline_molecule_stub_state
+      changed_when: false
+      failed_when: false
+
+    # Started with `--rm`, so a stub that died leaves nothing behind to
+    # conflict with the name and simply gets started again here.
+    #
+    # It runs on Outline's own image: that image is already pulled because the
+    # role pulled it, and it ships the Node runtime the stub needs, so the
+    # scenario costs no additional pull.
+    - name: Ensure the Outline Molecule OIDC stub container is started
+      when: >-
+        outline_molecule_stub_state.rc != 0
+        or not (outline_molecule_stub_state.stdout | from_json)[0].State.Running | bool
+      ansible.builtin.command:
+        argv:
+          - docker
+          - run
+          - --detach
+          - --rm
+          - "--name={{ outline_molecule_stub_container_name }}"
+          - "--network={{ outline_container_network }}"
+          - "--entrypoint=node"
+          - "--env=STUB_PORT={{ outline_molecule_stub_port }}"
+          - "--env=STUB_CLIENT_ID={{ outline_environment_variable_oidc_client_id }}"
+          - "--env=STUB_CLIENT_SECRET={{ outline_environment_variable_oidc_client_secret }}"
+          - "--env=STUB_EMAIL={{ outline_molecule_expected_email }}"
+          - "--env=STUB_NAME={{ outline_molecule_expected_name }}"
+          - "--volume={{ outline_molecule_stub_path }}/oidc-stub.js:/oidc-stub.js:ro"
+          - "{{ outline_container_image }}"
+          - /oidc-stub.js
+      changed_when: true
+
+    # Asked from inside the stub container, because it publishes no ports on
+    # the test host - it is only reachable from the container network.
+    - name: Wait for the Outline Molecule OIDC stub to answer (up to 60s)
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ outline_molecule_stub_container_name }}"
+          - node
+          - -e
+          - |
+            fetch("http://127.0.0.1:" + process.env.STUB_PORT + "/userinfo")
+              .then((response) => console.log(response.status))
+              .catch(() => console.log("unreachable"));
+      register: outline_molecule_stub_probe
+      changed_when: false
+      failed_when: false
+      until: outline_molecule_stub_probe.stdout | trim == '401'
+      retries: 12
+      delay: 5
+
+    # 401 rather than 200: the probe presents no access token, and a stub that
+    # answers this way is one that is both listening and checking tokens.
+    - name: Assert the Outline Molecule OIDC stub is answering
+      ansible.builtin.assert:
+        that: outline_molecule_stub_probe.stdout | trim == '401'
+        fail_msg: "The Outline Molecule OIDC stub did not answer: {{ outline_molecule_stub_probe.stdout | default('') | trim }}"
+        success_msg: "The Outline Molecule OIDC stub is answering"
+
+- name: Ensure services are started
+  hosts: all
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure systemd daemon is reloaded
+      ansible.builtin.systemd_service:
+        daemon_reload: true
+
+    - name: Ensure Postgres systemd service is started
+      ansible.builtin.systemd_service:
+        name: postgres.service
+        state: started
+
+    - name: Ensure Valkey systemd service is started
+      ansible.builtin.systemd_service:
+        name: valkey.service
+        state: started
+
+    - name: Ensure Outline systemd service is started
+      ansible.builtin.systemd_service:
+        name: outline.service
+        state: started
+
+    # `state: started` leaves an already-running service alone, so on a second
+    # converge against the same instance it would keep running the previous
+    # unit file and `verify.yml` would be probing something the role no longer
+    # generates. The role works out whether anything it manages changed;
+    # acting on that here is what a playbook's systemd service manager role
+    # does, and it stays idempotent because an unchanged run computes `false`.
+    - name: Ensure Outline systemd service is restarted if necessary
+      when: outline_restart_necessary | bool
+      ansible.builtin.systemd_service:
+        name: outline.service
+        state: restarted

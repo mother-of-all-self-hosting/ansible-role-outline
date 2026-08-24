@@ -1,0 +1,325 @@
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
+# SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+#
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+---
+- name: Verify Outline with an OpenID Connect sign-in provider
+  hosts: all
+  become: true
+  gather_facts: false
+
+  vars:
+    outline_verify_base_url: "http://localhost:{{ outline_container_http_host_bind_port }}"
+
+    # The command prefix that runs a single SQL statement inside the Postgres
+    # container this scenario started, printing bare values with no headers.
+    #
+    # The docker CLI is invoked directly here and below: the ansible-lint
+    # environment used by pre-commit has no collections installed, so
+    # community.docker.* would fail the playbook syntax check.
+    outline_verify_psql_command: >-
+      docker exec --env=PGPASSWORD={{ outline_database_password | quote }}
+      {{ postgres_identifier | default('postgres') }}
+      psql -U {{ outline_database_username | quote }}
+      -d {{ outline_database_name | quote }} -tAc
+
+    outline_verify_tables_query: "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'"
+
+    # Outline records every applied migration in this Sequelize bookkeeping
+    # table. The name is capitalized, hence the inner double quotes.
+    outline_verify_migrations_query: 'SELECT count(*) FROM "SequelizeMeta"'
+
+    # Outline sets its session cookie with the `secure` flag and refuses to
+    # send it over a connection it considers unencrypted, answering 500
+    # instead. In a real deployment TLS is terminated by the reverse proxy in
+    # front of it, which is what this header stands in for - so every request
+    # that takes part in the sign-in carries it.
+    outline_verify_proxy_headers:
+      X-Forwarded-Proto: https
+
+  tasks:
+    # Role defaults are not in scope in a verify play, but the version that
+    # Renovate bumps lives in them and is what the running Outline is checked
+    # against below. Only leaf literals may be read out of this namespace -
+    # anything Jinja-derived (`outline_container_image_tag` and friends) would
+    # be resolved against an empty one.
+    - name: Load the Outline role defaults
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
+        name: outline_defaults
+
+    - name: Load the Outline Molecule OIDC credentials
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/credentials.yml"
+
+    - name: Wait for Outline service to become active (up to 180s)
+      ansible.builtin.systemd:
+        name: outline.service
+      register: outline_service
+      until: outline_service.status.ActiveState == 'active'
+      retries: 36
+      delay: 5
+
+    # This is a gate, not evidence. The unit is `Type=simple` with
+    # `Restart=always`, so systemd calls it active the moment `docker start`
+    # is running, long before Outline has migrated its schema and bound a
+    # listener - and an Outline that crashes on every start still cycles back
+    # through `active` between restarts.
+    - name: Assert Outline service is active
+      ansible.builtin.assert:
+        that: outline_service.status.ActiveState == 'active'
+        fail_msg: "outline.service not active ({{ outline_service.status.ActiveState }})"
+        success_msg: "outline.service is active"
+
+    # The container is created with `--log-driver=none`, so `docker logs` is
+    # empty by design; the unit runs `docker start --attach`, which puts the
+    # application's output into the journal instead.
+    - name: Retrieve Outline service log for debugging
+      when: outline_debug_service_enabled | bool
+      ansible.builtin.command:
+        cmd: journalctl -xeu outline.service
+      changed_when: false
+
+    # `/_health` is the only endpoint here that cannot lie, and only its body
+    # can be trusted: Outline answers every path it does not recognize with
+    # the same 200 and the same single-page-application shell, so a status
+    # code proves nothing. This one answers with the two bytes `OK`, and it is
+    # what the image's own HEALTHCHECK probes.
+    - name: Wait for the Outline health endpoint to answer (up to 10m)
+      ansible.builtin.uri:
+        url: "{{ outline_verify_base_url }}/_health"
+        method: GET
+        follow_redirects: none
+        status_code: [200, 404, 500, 502, 503]
+        return_content: true
+      register: outline_health
+      until: outline_health.status == 200 and outline_health.content | trim == 'OK'
+      retries: 120
+      delay: 5
+
+    - name: Assert the Outline health endpoint reports OK
+      ansible.builtin.assert:
+        that: outline_health.content | trim == 'OK'
+        fail_msg: "The Outline health endpoint answered '{{ outline_health.content | default('nothing') | trim }}'"
+        success_msg: "The Outline health endpoint reports OK"
+
+    # Outline reports no version over HTTP, so the running container is asked
+    # for the version of the code it is actually executing.
+    - name: Query the version of the running Outline
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ outline_defaults.outline_identifier }}"
+          - node
+          - -e
+          - |
+            console.log(require("/opt/outline/package.json").version)
+      register: outline_version_command
+      changed_when: false
+
+    - name: Assert the running Outline is the version this role installs
+      ansible.builtin.assert:
+        that: outline_version_command.stdout | trim == outline_defaults.outline_version
+        fail_msg: "Outline reports {{ outline_version_command.stdout | trim }}, expected {{ outline_defaults.outline_version }}"
+        success_msg: "Outline reports {{ outline_version_command.stdout | trim }}"
+
+    # The sign-in provider list is where the OIDC settings out of the `env`
+    # file this role templates become visible. The display name is one this
+    # scenario invented, so finding it here is that variable reaching the
+    # running process rather than a default being echoed back.
+    - name: Ask Outline which sign-in providers it offers
+      ansible.builtin.uri:
+        url: "{{ outline_verify_base_url }}/api/auth.config"
+        method: POST
+        body_format: json
+        body: {}
+        status_code: [200]
+        return_content: true
+      register: outline_auth_config
+
+    - name: Assert Outline offers the sign-in provider this scenario configured
+      ansible.builtin.assert:
+        that:
+          - outline_auth_config.json.data.providers | length == 1
+          - outline_auth_config.json.data.providers[0].id == 'oidc'
+          - outline_auth_config.json.data.providers[0].name == outline_environment_variable_oidc_display_name
+          - outline_auth_config.json.data.providers[0].authUrl == '/auth/oidc'
+        fail_msg: "Outline offers {{ outline_auth_config.json.data.providers }}"
+        success_msg: "Outline offers the '{{ outline_environment_variable_oidc_display_name }}' sign-in provider"
+
+    # Where the sign-in button leads. Outline builds this URL out of the
+    # authorization endpoint and client ID it was configured with, so the
+    # redirect carries both back. The `Location` header is absolute, hence the
+    # split.
+    - name: Start an Outline sign-in
+      ansible.builtin.uri:
+        url: "{{ outline_verify_base_url }}/auth/oidc"
+        method: GET
+        follow_redirects: none
+        status_code: [302]
+        headers: "{{ outline_verify_proxy_headers }}"
+      register: outline_sign_in_start
+
+    - name: Assert Outline redirects to the configured provider with the configured client ID
+      ansible.builtin.assert:
+        that:
+          - outline_sign_in_start.location | urlsplit('netloc') == outline_environment_variable_oidc_auth_uri | urlsplit('netloc')
+          - outline_sign_in_start.location | urlsplit('path') == outline_environment_variable_oidc_auth_uri | urlsplit('path')
+          - "'client_id=' ~ outline_environment_variable_oidc_client_id in (outline_sign_in_start.location | urlsplit('query'))"
+        fail_msg: "Outline does not redirect to the configured provider: {{ outline_sign_in_start.location }}"
+        success_msg: >-
+          Outline redirects a sign-in to
+          {{ outline_sign_in_start.location | urlsplit('netloc') }}{{ outline_sign_in_start.location | urlsplit('path') }}
+
+    # On anything other than 2xx the uri module leaves `cookies` and
+    # `cookies_string` undefined, and these responses are all 302s, so the
+    # cookie is taken out of the raw `Set-Cookie` header instead. Outline
+    # rejects the callback with `state-mismatch` unless this cookie comes back
+    # with it, so carrying it is not optional.
+    - name: Remember the OAuth state and CSRF cookie
+      ansible.builtin.set_fact:
+        outline_verify_oauth_state: "{{ outline_sign_in_start.location | regex_search('[?&]state=([^&]+)', '\\1') | first }}"
+        outline_verify_oauth_csrf: "{{ outline_sign_in_start.set_cookie | regex_search('oauth_csrf=([^;]+)', '\\1') | first }}"
+
+    # The whole point of the stub. Outline exchanges this code at the token
+    # endpoint - sending the client ID and secret out of the `env` file this
+    # role templated - and then reads the account off the userinfo endpoint.
+    # The stub refuses to issue a token unless both credentials match byte for
+    # byte, so a sign-in that gets this far is proof that they survived
+    # Ansible, the templated `env` file and Docker's `--env-file` parsing
+    # intact, dollar signs and all.
+    - name: Complete the Outline sign-in against the stub provider
+      ansible.builtin.uri:
+        url: "{{ outline_verify_base_url }}/auth/oidc.callback?code=molecule-authorization-code&state={{ outline_verify_oauth_state }}"
+        method: GET
+        follow_redirects: none
+        status_code: [302]
+        headers: "{{ outline_verify_proxy_headers | combine({'Cookie': 'oauth_csrf=' ~ outline_verify_oauth_csrf}) }}"
+      register: outline_sign_in_callback
+
+    # A failed sign-in also answers 302, but back to the root with a `notice`
+    # query parameter saying what went wrong - so the destination, not the
+    # status, is what distinguishes the two.
+    - name: Assert the sign-in landed on a collection rather than an error notice
+      ansible.builtin.assert:
+        that:
+          - "'notice=' not in outline_sign_in_callback.location"
+          - "'/collection/' in outline_sign_in_callback.location"
+        fail_msg: "The Outline sign-in did not succeed: {{ outline_sign_in_callback.location }}"
+        success_msg: "The Outline sign-in landed on {{ outline_sign_in_callback.location }}"
+
+    - name: Remember the Outline session token
+      ansible.builtin.set_fact:
+        outline_verify_session_token: "{{ outline_sign_in_callback.set_cookie | regex_search('accessToken=([^;]+)', '\\1') | first }}"
+
+    # An endpoint that answers 401 without a session, so a reply describing
+    # the account is a session that Outline actually issued and accepts.
+    - name: Ask Outline who is signed in
+      ansible.builtin.uri:
+        url: "{{ outline_verify_base_url }}/api/auth.info"
+        method: POST
+        body_format: json
+        body: {}
+        status_code: [200]
+        headers: "{{ outline_verify_proxy_headers | combine({'Authorization': 'Bearer ' ~ outline_verify_session_token}) }}"
+        return_content: true
+      register: outline_whoami
+
+    # The name and email come from the stub's userinfo response, and Outline
+    # picked the account out by the username claim this scenario configured.
+    # The first account to sign in owns the workspace, hence the admin role.
+    - name: Assert Outline provisioned the account the provider described
+      ansible.builtin.assert:
+        that:
+          - outline_whoami.json.data.user.email == outline_molecule_expected_email
+          - outline_whoami.json.data.user.name == outline_molecule_expected_name
+          - outline_whoami.json.data.user.role == 'admin'
+          - outline_whoami.json.data.team.url == outline_environment_variable_url
+        fail_msg: "Outline reports an unexpected session: {{ outline_whoami.json.data.user | default('none') }}"
+        success_msg: >-
+          Outline signed in {{ outline_whoami.json.data.user.name }}
+          <{{ outline_whoami.json.data.user.email }}> as {{ outline_whoami.json.data.user.role }}
+
+    # Everything above would read the same if Outline had quietly migrated into
+    # some other database, so the schema is looked up in the container this
+    # scenario started, at the other end of the Unix socket the role
+    # bind-mounts.
+    - name: Count the Outline tables in the Postgres container
+      ansible.builtin.command:
+        cmd: "{{ outline_verify_psql_command }} {{ outline_verify_tables_query | quote }}"
+      register: outline_db_tables
+      changed_when: false
+
+    - name: Assert Outline migrated its schema into that database
+      ansible.builtin.assert:
+        that: outline_db_tables.stdout | trim | int > 0
+        fail_msg: "The database '{{ outline_database_name }}' holds no tables - Outline is not using it"
+        success_msg: "The database '{{ outline_database_name }}' holds {{ outline_db_tables.stdout | trim }} tables"
+
+    - name: Count the migrations Outline recorded in the Postgres container
+      ansible.builtin.command:
+        cmd: "{{ outline_verify_psql_command }} {{ outline_verify_migrations_query | quote }}"
+      register: outline_db_migrations
+      changed_when: false
+
+    - name: Assert Outline recorded its migrations in that database
+      ansible.builtin.assert:
+        that: outline_db_migrations.stdout | trim | int > 0
+        fail_msg: "Outline recorded no migrations in '{{ outline_database_name }}'"
+        success_msg: "Outline recorded {{ outline_db_migrations.stdout | trim }} migrations in '{{ outline_database_name }}'"
+
+    # The round trip closes here: the account that signed in over HTTP a
+    # moment ago is read back out of the database container, rather than taken
+    # on the application's word.
+    - name: Read the signed-in account out of the Postgres container
+      ansible.builtin.command:
+        cmd: >-
+          {{ outline_verify_psql_command }}
+          {{ ("SELECT name FROM users WHERE email = '" ~ outline_molecule_expected_email ~ "'") | quote }}
+      register: outline_db_user_row
+      changed_when: false
+
+    - name: Assert the signed-in account was written to that database
+      ansible.builtin.assert:
+        that: outline_db_user_row.stdout | trim == outline_molecule_expected_name
+        fail_msg: >-
+          The users row for {{ outline_molecule_expected_email }} reads
+          '{{ outline_db_user_row.stdout | trim | default('nothing at all', true) }}'
+        success_msg: "The users row for {{ outline_molecule_expected_email }} records {{ outline_db_user_row.stdout | trim }}"
+
+    # The other data-store this role wires up, over its own Unix socket.
+    - name: List the Outline job-queue keys in the Valkey container
+      ansible.builtin.command:
+        argv:
+          - docker
+          - exec
+          - "{{ valkey_identifier | default('valkey') }}"
+          - valkey-cli
+          - --scan
+          - --pattern
+          - "bull:*"
+      register: outline_valkey_keys
+      changed_when: false
+
+    - name: Assert Outline created its job queues in that Valkey
+      ansible.builtin.assert:
+        that: outline_valkey_keys.stdout_lines | length > 0
+        fail_msg: "Valkey holds no 'bull:*' keys - Outline is not using it"
+        success_msg: "Valkey holds {{ outline_valkey_keys.stdout_lines | length }} 'bull:*' keys"
+
+    - name: Show Outline verification summary
+      ansible.builtin.debug:
+        msg:
+          - "Outline systemd: {{ outline_service.status.ActiveState }}"
+          - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
+          - "Outline version: {{ outline_version_command.stdout | trim }}"
+          - "Sign-in provider: {{ outline_auth_config.json.data.providers[0].name }}"
+          - "Sign-in redirect: {{ outline_sign_in_start.location | urlsplit('netloc') }}{{ outline_sign_in_start.location | urlsplit('path') }}"
+          - "Signed in as: {{ outline_whoami.json.data.user.name }} <{{ outline_whoami.json.data.user.email }}> ({{ outline_whoami.json.data.user.role }})"
+          - "Postgres tables: {{ outline_db_tables.stdout | trim }}"
+          - "Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
+          - "Postgres users row: {{ outline_db_user_row.stdout | trim }}"
+          - "Valkey job-queue keys: {{ outline_valkey_keys.stdout_lines | length }}"
