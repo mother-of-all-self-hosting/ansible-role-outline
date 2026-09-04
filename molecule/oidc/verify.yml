@@ -100,7 +100,7 @@
     - name: Assert the Outline health endpoint reports OK
       ansible.builtin.assert:
         that: outline_health.content | trim == 'OK'
-        fail_msg: "The Outline health endpoint answered '{{ outline_health.content | default('nothing') | trim }}'"
+        fail_msg: "The Outline health endpoint answered '{{ outline_health.content | default('none') | trim }}'"
         success_msg: "The Outline health endpoint reports OK"
 
     # Outline reports no version over HTTP, so the running container is asked
@@ -121,7 +121,7 @@
     - name: Assert the running Outline is the version this role installs
       ansible.builtin.assert:
         that: outline_version_command.stdout | trim == outline_defaults.outline_version
-        fail_msg: "Outline reports {{ outline_version_command.stdout | trim }}, expected {{ outline_defaults.outline_version }}"
+        fail_msg: "Outline reports {{ outline_version_command.stdout | trim | default('none') }}, expected {{ outline_defaults.outline_version }}"
         success_msg: "Outline reports {{ outline_version_command.stdout | trim }}"
 
     # The sign-in provider list is where the OIDC settings out of the `env`
