@@ -52,8 +52,7 @@
     # `Restart=always`, so systemd calls it active the moment `docker start`
     # is running, long before Outline has migrated its schema and bound a
     # listener - and an Outline that crashes on every start still cycles back
-    # through `active` between restarts. Everything that actually proves
-    # something comes after this.
+    # through `active` between restarts.
     - name: Assert Outline service is active
       ansible.builtin.assert:
         that: outline_service.status.ActiveState == 'active'
@@ -70,16 +69,10 @@
       changed_when: false
 
     # `/_health` is the only endpoint here that cannot lie, and only its body
-    # can be trusted. Outline serves a single-page application, and every path
-    # it does not recognize - `/healthz` and any typo alike - is answered with
-    # the same 200 and the same HTML shell, so a status code proves nothing at
-    # all. `/_health` answers with the two bytes `OK`, and it is what the
-    # image's own HEALTHCHECK probes.
-    #
-    # Reaching it also means the schema is migrated: Outline runs its
-    # migrations before it starts the web service. Started with no
-    # DATABASE_URL at all it does not serve an error page - it throws and
-    # exits 1 immediately.
+    # can be trusted: Outline answers every path it does not recognize with
+    # the same 200 and the same single-page-application shell, so a status
+    # code proves nothing. This one answers with the two bytes `OK`, and it is
+    # what the image's own HEALTHCHECK probes.
     - name: Wait for the Outline health endpoint to answer (up to 10m)
       ansible.builtin.uri:
         url: "{{ outline_verify_base_url }}/_health"
@@ -119,9 +112,7 @@
         success_msg: "An unrouted path renders the application shell, so the health endpoint's body is meaningful"
 
     # Outline reports no version over HTTP, so the running container is asked
-    # for the version of the code it is actually executing. An image label
-    # would only restate what was pulled; package.json is what `node` runs,
-    # which also covers the self-build case.
+    # for the version of the code it is actually executing.
     - name: Query the version of the running Outline
       ansible.builtin.command:
         argv:

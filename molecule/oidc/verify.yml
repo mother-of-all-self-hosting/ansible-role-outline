@@ -1,6 +1,6 @@
-# SPDX-FileCopyrightText: 2026 Suguru Hirahara
-# SPDX-FileCopyrightText: 2026 spatterlight
 # SPDX-FileCopyrightText: 2026 Slavi Pantaleev
+# SPDX-FileCopyrightText: 2026 spatterlight
+# SPDX-FileCopyrightText: 2026 Suguru Hirahara
 #
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -257,6 +257,8 @@
         fail_msg: "The database '{{ outline_database_name }}' holds no tables - Outline is not using it"
         success_msg: "The database '{{ outline_database_name }}' holds {{ outline_db_tables.stdout | trim }} tables"
 
+    # A non-empty bookkeeping table is the migration run itself leaving a
+    # trace, rather than a schema that merely happens to have tables in it.
     - name: Count the migrations Outline recorded in the Postgres container
       ansible.builtin.command:
         cmd: "{{ outline_verify_psql_command }} {{ outline_verify_migrations_query | quote }}"
@@ -292,7 +294,11 @@
     # from the connection side rather than the key side. Outline's job-queue
     # keys come and go as queues drain, so their presence is a matter of
     # timing; the connections it opens at startup and names after itself with
-    # CLIENT SETNAME stay for as long as it runs.
+    # CLIENT SETNAME stay for as long as it runs, and no other client would
+    # introduce them.
+    #
+    # This is asked separately because a broken REDIS_URL does not necessarily
+    # stop Outline from answering `/_health`.
     - name: List the clients connected to the Valkey container
       ansible.builtin.command:
         argv:
