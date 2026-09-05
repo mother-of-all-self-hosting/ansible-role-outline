@@ -12,7 +12,7 @@
   tasks:
     - name: Load the Outline Molecule OIDC credentials
       ansible.builtin.include_vars:
-        file: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/credentials.yml"
+        file: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/oidc_credentials.yml"
 
     - name: Include roles for Outline OIDC Molecule tests
       ansible.builtin.include_role:
