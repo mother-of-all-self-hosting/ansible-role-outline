@@ -40,6 +40,10 @@
       X-Forwarded-Proto: https
 
   tasks:
+    - name: Load the Outline Molecule OIDC credentials
+      ansible.builtin.include_vars:
+        file: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/credentials.yml"
+
     # The role is not included in this playbook, so its defaults are not in
     # scope. Reading defaults/main.yml directly ties the version assertion
     # below.
@@ -47,10 +51,6 @@
       ansible.builtin.include_vars:
         file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
         name: outline_defaults
-
-    - name: Load the Outline Molecule OIDC credentials
-      ansible.builtin.include_vars:
-        file: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/credentials.yml"
 
     - name: Wait for Outline service to become active (up to 180s)
       ansible.builtin.systemd:
@@ -102,6 +102,26 @@
         that: outline_health.content | trim == 'OK'
         fail_msg: "The Outline health endpoint answered '{{ outline_health.content | default('none') | trim }}'"
         success_msg: "The Outline health endpoint reports OK"
+
+    # Proof that the health endpoint above is worth anything: an unrecognized
+    # path comes back as the single-page application shell, which is what
+    # `/_health` would also look like if it were not a real route.
+    - name: Request a path Outline does not route
+      ansible.builtin.uri:
+        url: "{{ outline_verify_base_url }}/molecule-no-such-path"
+        method: GET
+        follow_redirects: none
+        status_code: [200]
+        return_content: true
+      register: outline_unrouted
+
+    - name: Assert an unrouted path is answered with the application shell rather than OK
+      ansible.builtin.assert:
+        that:
+          - outline_unrouted.content | trim != 'OK'
+          - "'<div id=\"root\"></div>' in outline_unrouted.content"
+        fail_msg: "An unrouted path did not render the Outline application shell"
+        success_msg: "An unrouted path renders the application shell, so the health endpoint's body is meaningful"
 
     # Outline reports no version over HTTP, so the running container is asked
     # for the version of the code it is actually executing.
