@@ -313,16 +313,16 @@
           Outline holds {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}
           named connections to Valkey
 
-    - name: Show Outline verification summary
+    - name: Show the Outline verification summary
       ansible.builtin.debug:
         msg:
           - "Outline systemd: {{ outline_service.status.ActiveState }}"
-          - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
           - "Outline version: {{ outline_version_command.stdout | trim }}"
-          - "Sign-in provider: {{ outline_auth_config.json.data.providers[0].name }}"
-          - "Sign-in redirect: {{ outline_sign_in_start.location | urlsplit('netloc') }}{{ outline_sign_in_start.location | urlsplit('path') }}"
-          - "Signed in as: {{ outline_whoami.json.data.user.name }} <{{ outline_whoami.json.data.user.email }}> ({{ outline_whoami.json.data.user.role }})"
-          - "Postgres tables: {{ outline_db_tables.stdout | trim }}"
-          - "Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
-          - "Postgres users row: {{ outline_db_user_row.stdout | trim }}"
-          - "Valkey connections named by Outline: {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}"
+          - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
+          - "Outline sign-in provider: {{ outline_auth_config.json.data.providers[0].name }}"
+          - "Outline sign-in redirect: {{ outline_sign_in_start.location | urlsplit('netloc') }}{{ outline_sign_in_start.location | urlsplit('path') }}"
+          - "Outline signed in as: {{ outline_whoami.json.data.user.name }} <{{ outline_whoami.json.data.user.email }}> ({{ outline_whoami.json.data.user.role }})"
+          - "Outline Postgres tables: {{ outline_db_tables.stdout | trim }}"
+          - "Outline Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
+          - "Outline Postgres users row: {{ outline_db_user_row.stdout | trim }}"
+          - "Outline Valkey connections named by Outline: {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}"

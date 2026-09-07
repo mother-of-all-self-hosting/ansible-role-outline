@@ -222,13 +222,13 @@
           {{ outline_auth_config.json.data.providers | map(attribute='name') | join(', ') }}
         success_msg: "Outline offers no sign-in provider, as this scenario configures none"
 
-    - name: Show Outline verification summary
+    - name: Show the Outline verification summary
       ansible.builtin.debug:
         msg:
           - "Outline systemd: {{ outline_service.status.ActiveState }}"
-          - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
           - "Outline version: {{ outline_version_command.stdout | trim }}"
-          - "Postgres tables: {{ outline_db_tables.stdout | trim }}"
-          - "Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
-          - "Valkey connections named by Outline: {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}"
-          - "Sign-in providers: {{ outline_auth_config.json.data.providers | length }}"
+          - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
+          - "Outline Postgres tables: {{ outline_db_tables.stdout | trim }}"
+          - "Outline Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
+          - "Outline Valkey connections named by Outline: {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}"
+          - "Outline sign-in providers: {{ outline_auth_config.json.data.providers | length }}"
