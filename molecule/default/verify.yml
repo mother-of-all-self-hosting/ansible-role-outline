@@ -32,98 +32,115 @@
     outline_verify_migrations_query: 'SELECT count(*) FROM "SequelizeMeta"'
 
   tasks:
-    - name: Run the checks shared by all Outline scenarios
-      ansible.builtin.include_tasks:
-        file: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}/molecule/verify_tasks.yml"
+    - name: Verify that Outline works
+      block:
+        - name: Run the checks shared by all Outline scenarios
+          ansible.builtin.include_tasks:
+            file: "{{ lookup('ansible.builtin.env', 'MOLECULE_PROJECT_DIRECTORY') }}/molecule/verify_tasks.yml"
 
-    # Everything above would read the same if Outline had quietly migrated into
-    # some other database, so the schema is looked up in the container this
-    # scenario started, at the other end of the Unix socket the role
-    # bind-mounts.
-    - name: Count the Outline tables in the Postgres container
-      ansible.builtin.command:
-        cmd: "{{ outline_verify_psql_command }} {{ outline_verify_tables_query | quote }}"
-      register: outline_db_tables
-      changed_when: false
+        # Everything above would read the same if Outline had quietly migrated into
+        # some other database, so the schema is looked up in the container this
+        # scenario started, at the other end of the Unix socket the role
+        # bind-mounts.
+        - name: Count the Outline tables in the Postgres container
+          ansible.builtin.command:
+            cmd: "{{ outline_verify_psql_command }} {{ outline_verify_tables_query | quote }}"
+          register: outline_db_tables
+          changed_when: false
 
-    - name: Assert Outline migrated its schema into that database
-      ansible.builtin.assert:
-        that: outline_db_tables.stdout | trim | int > 0
-        fail_msg: "The database '{{ outline_database_name }}' holds no tables - Outline is not using it"
-        success_msg: "The database '{{ outline_database_name }}' holds {{ outline_db_tables.stdout | trim }} tables"
+        - name: Assert Outline migrated its schema into that database
+          ansible.builtin.assert:
+            that: outline_db_tables.stdout | trim | int > 0
+            fail_msg: "The database '{{ outline_database_name }}' holds no tables - Outline is not using it"
+            success_msg: "The database '{{ outline_database_name }}' holds {{ outline_db_tables.stdout | trim }} tables"
 
-    # A non-empty bookkeeping table is the migration run itself leaving a
-    # trace, rather than a schema that merely happens to have tables in it.
-    - name: Count the migrations Outline recorded in the Postgres container
-      ansible.builtin.command:
-        cmd: "{{ outline_verify_psql_command }} {{ outline_verify_migrations_query | quote }}"
-      register: outline_db_migrations
-      changed_when: false
+        # A non-empty bookkeeping table is the migration run itself leaving a
+        # trace, rather than a schema that merely happens to have tables in it.
+        - name: Count the migrations Outline recorded in the Postgres container
+          ansible.builtin.command:
+            cmd: "{{ outline_verify_psql_command }} {{ outline_verify_migrations_query | quote }}"
+          register: outline_db_migrations
+          changed_when: false
 
-    - name: Assert Outline recorded its migrations in that database
-      ansible.builtin.assert:
-        that: outline_db_migrations.stdout | trim | int > 0
-        fail_msg: "Outline recorded no migrations in '{{ outline_database_name }}'"
-        success_msg: "Outline recorded {{ outline_db_migrations.stdout | trim }} migrations in '{{ outline_database_name }}'"
+        - name: Assert Outline recorded its migrations in that database
+          ansible.builtin.assert:
+            that: outline_db_migrations.stdout | trim | int > 0
+            fail_msg: "Outline recorded no migrations in '{{ outline_database_name }}'"
+            success_msg: "Outline recorded {{ outline_db_migrations.stdout | trim }} migrations in '{{ outline_database_name }}'"
 
-    # The other data-store this role wires up, over its own Unix socket, asked
-    # from the connection side rather than the key side. Outline's job-queue
-    # keys come and go as queues drain, so their presence is a matter of
-    # timing; the connections it opens at startup and names after itself with
-    # CLIENT SETNAME stay for as long as it runs, and no other client would
-    # introduce them.
-    #
-    # This is asked separately because a broken REDIS_URL does not necessarily
-    # stop Outline from answering `/_health`.
-    - name: List the clients connected to the Valkey container
-      ansible.builtin.command:
-        argv:
-          - docker
-          - exec
-          - "{{ valkey_identifier | default('valkey') }}"
-          - valkey-cli
-          - CLIENT
-          - LIST
-      register: outline_valkey_clients
-      changed_when: false
+        # The other data-store this role wires up, over its own Unix socket, asked
+        # from the connection side rather than the key side. Outline's job-queue
+        # keys come and go as queues drain, so their presence is a matter of
+        # timing; the connections it opens at startup and names after itself with
+        # CLIENT SETNAME stay for as long as it runs, and no other client would
+        # introduce them.
+        #
+        # This is asked separately because a broken REDIS_URL does not necessarily
+        # stop Outline from answering `/_health`.
+        - name: List the clients connected to the Valkey container
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - "{{ valkey_identifier | default('valkey') }}"
+              - valkey-cli
+              - CLIENT
+              - LIST
+          register: outline_valkey_clients
+          changed_when: false
 
-    - name: Assert Outline is connected to that Valkey
-      ansible.builtin.assert:
-        that: "'name=outline:' in outline_valkey_clients.stdout"
-        fail_msg: "No client named 'outline:...' is connected to Valkey - Outline is not using it"
-        success_msg: >-
-          Outline holds {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}
-          named connections to Valkey
+        - name: Assert Outline is connected to that Valkey
+          ansible.builtin.assert:
+            that: "'name=outline:' in outline_valkey_clients.stdout"
+            fail_msg: "No client named 'outline:...' is connected to Valkey - Outline is not using it"
+            success_msg: >-
+              Outline holds {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}
+              named connections to Valkey
 
-    # This scenario configures no sign-in provider, and Outline is content to
-    # run without one. Asking it which providers it offers ties the answer to
-    # this scenario's configuration rather than to a default, and it is the
-    # same endpoint the `oidc` scenario watches a provider appear on.
-    - name: Ask Outline which sign-in providers it offers
-      ansible.builtin.uri:
-        url: "{{ outline_verify_base_url }}/api/auth.config"
-        method: POST
-        body_format: json
-        body: {}
-        status_code: [200]
-        return_content: true
-      register: outline_auth_config
+        # This scenario configures no sign-in provider, and Outline is content to
+        # run without one. Asking it which providers it offers ties the answer to
+        # this scenario's configuration rather than to a default, and it is the
+        # same endpoint the `oidc` scenario watches a provider appear on.
+        - name: Ask Outline which sign-in providers it offers
+          ansible.builtin.uri:
+            url: "{{ outline_verify_base_url }}/api/auth.config"
+            method: POST
+            body_format: json
+            body: {}
+            status_code: [200]
+            return_content: true
+          register: outline_auth_config
 
-    - name: Assert Outline offers no sign-in provider in this scenario
-      ansible.builtin.assert:
-        that: outline_auth_config.json.data.providers | length == 0
-        fail_msg: >-
-          Outline offers sign-in providers this scenario did not configure:
-          {{ outline_auth_config.json.data.providers | map(attribute='name') | join(', ') }}
-        success_msg: "Outline offers no sign-in provider, as this scenario configures none"
+        - name: Assert Outline offers no sign-in provider in this scenario
+          ansible.builtin.assert:
+            that: outline_auth_config.json.data.providers | length == 0
+            fail_msg: >-
+              Outline offers sign-in providers this scenario did not configure:
+              {{ outline_auth_config.json.data.providers | map(attribute='name') | join(', ') }}
+            success_msg: "Outline offers no sign-in provider, as this scenario configures none"
 
-    - name: Show the Outline verification summary
-      ansible.builtin.debug:
-        msg:
-          - "Outline systemd: {{ outline_service.status.ActiveState }}"
-          - "Outline version: {{ outline_version_command.stdout | trim }}"
-          - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
-          - "Outline Postgres tables: {{ outline_db_tables.stdout | trim }}"
-          - "Outline Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
-          - "Outline Valkey connections named by Outline: {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}"
-          - "Outline sign-in providers: {{ outline_auth_config.json.data.providers | length }}"
+        - name: Show the Outline verification summary
+          ansible.builtin.debug:
+            msg:
+              - "Outline systemd: {{ outline_service.status.ActiveState }}"
+              - "Outline version: {{ outline_version_command.stdout | trim }}"
+              - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
+              - "Outline Postgres tables: {{ outline_db_tables.stdout | trim }}"
+              - "Outline Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
+              - "Outline Valkey connections named by Outline: {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}"
+              - "Outline sign-in providers: {{ outline_auth_config.json.data.providers | length }}"
+      rescue:
+        # Whatever went wrong, the reason is almost always in the service log.
+        - name: Retrieve the Outline service log
+          ansible.builtin.command:
+            cmd: journalctl --no-pager -xeu outline.service
+          register: outline_service_log
+          changed_when: false
+
+        - name: Show the Outline service log
+          ansible.builtin.debug:
+            var: outline_service_log.stdout_lines
+
+        - name: Fail because verification did not pass
+          ansible.builtin.fail:
+            msg: "Outline verification failed. The service log is printed above."
