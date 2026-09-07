@@ -44,7 +44,7 @@
       block:
         - name: Load the Outline Molecule OIDC credentials
           ansible.builtin.include_vars:
-            file: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/credentials.yml"
+            file: "{{ lookup('env', 'MOLECULE_SCENARIO_DIRECTORY') }}/vars/oidc_credentials.yml"
 
         - name: Run the checks shared by all Outline scenarios
           ansible.builtin.include_tasks:
