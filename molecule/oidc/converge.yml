@@ -57,7 +57,7 @@
         argv:
           - docker
           - run
-          - --detach
+          - -d
           - --rm
           - "--name={{ outline_molecule_stub_container_name }}"
           - "--network={{ outline_container_network }}"
