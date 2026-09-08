@@ -38,10 +38,7 @@
     # not by the time Outline starts.
     - name: Query the state of the Outline Molecule OIDC stub container
       ansible.builtin.command:
-        argv:
-          - docker
-          - inspect
-          - "{{ outline_molecule_stub_container_name }}"
+        cmd: docker inspect {{ outline_molecule_stub_container_name }}
       register: outline_molecule_stub_state
       changed_when: false
       failed_when: false
