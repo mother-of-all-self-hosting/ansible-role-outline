@@ -133,7 +133,7 @@
         # Whatever went wrong, the reason is almost always in the service log.
         - name: Retrieve the Outline service log
           ansible.builtin.command:
-            cmd: journalctl --no-pager -xeu outline.service
+            cmd: journalctl --no-pager --output=cat --unit=outline.service
           register: outline_service_log
           changed_when: false
 

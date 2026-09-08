@@ -36,7 +36,7 @@
 - name: Retrieve the Outline systemd service log for debugging
   when: outline_debug_service_enabled | bool
   ansible.builtin.command:
-    cmd: journalctl -xeu outline.service
+    cmd: journalctl --no-pager --output=cat --unit=outline.service
   changed_when: false
 
 # `/_health` is the only endpoint here that cannot lie, and only its body
