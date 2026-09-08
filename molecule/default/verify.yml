@@ -123,7 +123,7 @@
           ansible.builtin.debug:
             msg:
               - "Outline systemd: {{ outline_service.status.ActiveState }}"
-              - "Outline version: {{ outline_version_command.stdout | trim }}"
+              - "Outline version: {{ outline_version_reported.stdout | trim }}"
               - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
               - "Outline Postgres tables: {{ outline_db_tables.stdout | trim }}"
               - "Outline Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"

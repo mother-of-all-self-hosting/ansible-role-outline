@@ -249,7 +249,7 @@
           ansible.builtin.debug:
             msg:
               - "Outline systemd: {{ outline_service.status.ActiveState }}"
-              - "Outline version: {{ outline_version_command.stdout | trim }}"
+              - "Outline version: {{ outline_version_reported.stdout | trim }}"
               - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
               - "Outline sign-in provider: {{ outline_auth_config.json.data.providers[0].name }}"
               - "Outline sign-in redirect: {{ outline_sign_in_start.location | urlsplit('netloc') }}{{ outline_sign_in_start.location | urlsplit('path') }}"

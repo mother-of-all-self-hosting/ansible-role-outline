@@ -94,11 +94,11 @@
       - -e
       - |
         console.log(require("/opt/outline/package.json").version)
-  register: outline_version_command
+  register: outline_version_reported
   changed_when: false
 
 - name: Assert the running Outline is the version this role installs
   ansible.builtin.assert:
-    that: outline_version_command.stdout | trim == outline_defaults.outline_version
-    fail_msg: "Outline reports {{ outline_version_command.stdout | trim | default('none') }}, expected {{ outline_defaults.outline_version }}"
-    success_msg: "Outline reports {{ outline_version_command.stdout | trim }}"
+    that: outline_version_reported.stdout | trim == outline_defaults.outline_version
+    fail_msg: "Outline reports {{ outline_version_reported.stdout | trim | default('none') }}, expected {{ outline_defaults.outline_version }}"
+    success_msg: "Outline reports {{ outline_version_reported.stdout | trim }}"
