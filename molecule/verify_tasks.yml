@@ -13,13 +13,14 @@
     file: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') }}/defaults/main.yml"
     name: outline_defaults
 
-- name: Wait for the Outline systemd service to become active (up to 180s)
+- name: Wait for the Outline systemd services to become active (up to 180s each)
   ansible.builtin.systemd_service:
-    name: outline.service
-  register: outline_service
-  until: outline_service.status.ActiveState == 'active'
+    name: "{{ item }}"
+  register: outline_services
+  until: outline_services.status.ActiveState == 'active'
   retries: 36
   delay: 5
+  loop: "{{ outline_verify_units }}"
   # So that giving up is reported by the assertion below rather than as a
   # wall of systemd unit properties.
   failed_when: false
@@ -27,17 +28,20 @@
 # `Restart=always` in the systemd unit means that even a container which crashes
 # and gets restarted reads as active here, so this is a precondition rather than
 # a result.
-- name: Assert the Outline systemd service is active
+- name: Assert the Outline systemd services are active
   ansible.builtin.assert:
-    that: outline_service.status.ActiveState == 'active'
-    fail_msg: "outline.service is not active ({{ outline_service.status.ActiveState }})"
-    success_msg: "outline.service is active"
+    that: outline_services.results | map(attribute='status.ActiveState') | unique | list == ['active']
+    fail_msg: >-
+      Not every service is active:
+      {{ dict(outline_verify_units | zip(outline_services.results | map(attribute='status.ActiveState'))) }}
+    success_msg: "Every systemd service is active"
 
-- name: Retrieve the Outline systemd service log for debugging
+- name: Retrieve the Outline systemd services log for debugging
   when: outline_debug_service_enabled | bool
   ansible.builtin.command:
-    cmd: journalctl --no-pager --output=cat --unit=outline.service
+    cmd: "journalctl --no-pager --output=cat --unit={{ item }}"
   changed_when: false
+  loop: "{{ outline_verify_units }}"
 
 # `/_health` is the only endpoint here that cannot lie, and only its body
 # can be trusted: Outline answers every path it does not recognize with

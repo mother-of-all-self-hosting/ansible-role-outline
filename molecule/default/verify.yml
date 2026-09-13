@@ -31,6 +31,11 @@
     # table. The name is capitalized, hence the inner double quotes.
     outline_verify_migrations_query: 'SELECT count(*) FROM "SequelizeMeta"'
 
+    outline_verify_units:
+      - outline.service
+      - postgres.service
+      - valkey.service
+
   tasks:
     - name: Verify that Outline works
       block:
@@ -122,7 +127,7 @@
         - name: Show the Outline verification summary
           ansible.builtin.debug:
             msg:
-              - "Outline systemd: {{ outline_service.status.ActiveState }}"
+              - "Outline systemd: {% for unit, state in outline_verify_units | zip(outline_services.results | map(attribute='status.ActiveState')) %}{{ unit }} ({{ state }}){% if not loop.last %}, {% endif %}{% endfor %}"
               - "Outline version: {{ outline_version_reported.stdout | trim }}"
               - "Outline health: {{ outline_health.status }} {{ outline_health.content | trim }}"
               - "Outline Postgres tables: {{ outline_db_tables.stdout | trim }}"
