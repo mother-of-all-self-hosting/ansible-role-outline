@@ -303,6 +303,7 @@
               - "Outline Postgres migrations recorded: {{ outline_db_migrations.stdout | trim }}"
               - "Outline Postgres users row: {{ outline_db_user_row.stdout | trim }}"
               - "Outline Valkey connections named by Outline: {{ outline_valkey_clients.stdout_lines | select('search', 'name=outline:') | list | length }}"
+
       rescue:
         # Whatever went wrong, the reason is almost always in the service log.
         - name: Retrieve the Outline service log
