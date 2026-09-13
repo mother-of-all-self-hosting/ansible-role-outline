@@ -48,7 +48,7 @@
 # the same 200 and the same single-page-application shell, so a status
 # code proves nothing. This one answers with the two bytes `OK`, and it is
 # what the image's own HEALTHCHECK probes.
-- name: Wait for the Outline health endpoint to answer (up to 10m)
+- name: Wait for Outline to report itself healthy (up to 180s)
   ansible.builtin.uri:
     url: "{{ outline_verify_base_url }}/_health"
     method: GET
@@ -57,14 +57,17 @@
     return_content: true
   register: outline_health
   until: outline_health.status == 200 and outline_health.content | trim == 'OK'
-  retries: 120
+  retries: 36
   delay: 5
+  # So that giving up is reported by the assertion below rather than as a
+  # wall of systemd unit properties.
+  failed_when: false
 
-- name: Assert the Outline health endpoint reports OK
+- name: Assert Outline reports itself healthy
   ansible.builtin.assert:
     that: outline_health.content | trim == 'OK'
-    fail_msg: "The Outline health endpoint answered '{{ outline_health.content | default('none') | trim }}'"
-    success_msg: "The Outline health endpoint reports OK"
+    fail_msg: "Outline did not report itself healthy: {{ outline_health.content | trim | default('no response') }}"
+    success_msg: "Outline reports itself healthy"
 
 # Proof that the health endpoint above is worth anything: an unrecognized
 # path comes back as the single-page application shell, which is what
