@@ -191,7 +191,10 @@ outline_systemd_wanted_services_list_auto: []
 outline_systemd_wanted_services_list_custom: []
 
 # Controls how long to wait for the container to stop gracefully before killing it.
-outline_container_stop_grace_time_seconds: "{{ devture_systemd_docker_base_container_stop_grace_time_seconds }}"
+# Because `devture_systemd_docker_base_container_stop_grace_time_seconds` may be quite short, we default to at least 30 seconds.
+# Outline runs its database migrations on startup. Killing it in the middle of them leaves their lock behind in Redis,
+# and Outline then refuses to start until that lock expires.
+outline_container_stop_grace_time_seconds: "{{ [devture_systemd_docker_base_container_stop_grace_time_seconds, 30] | max }}"
 
 # Controls how long the pre-start cleanup should wait for stale container-name release
 # before failing startup explicitly.
