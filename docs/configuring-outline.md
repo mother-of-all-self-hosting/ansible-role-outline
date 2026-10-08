@@ -21,17 +21,17 @@ SPDX-License-Identifier: AGPL-3.0-or-later
 
 # Setting up Outline
 
-This is an [Ansible](https://www.ansible.com/) role which installs [Outline](https://outline.io/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
+This is an [Ansible](https://www.ansible.com/) role which installs [Outline](https://www.getoutline.com/) to run as a [Docker](https://www.docker.com/) container wrapped in a systemd service.
 
-Outline is a self-hosted to-do application.
+Outline is an open-source knowledge base for growing teams.
 
-See the project's [documentation](https://outline.io/docs/) to learn what Outline does and why it might be useful to you.
+See the project's [documentation](https://docs.getoutline.com/s/guide) to learn what Outline does and why it might be useful to you.
 
 ## Prerequisites
 
-To run a Outline instance it is necessary to prepare a database. You can use a [MySQL](https://www.mysql.com/) compatible database server, [Postgres](https://www.postgresql.org/), or [SQLite](https://www.sqlite.org/). The SQLite database file will be automatically created by the service if it is enabled.
+To run a Outline instance it is necessary to prepare a [Postgres](https://www.postgresql.org/) database server and [Redis](https://redis.io/) database for managing cache data.
 
-If you are looking for Ansible roles for a MySQL compatible server or Postgres, you can check out [ansible-role-mariadb](https://github.com/mother-of-all-self-hosting/ansible-role-mariadb) and [ansible-role-postgres](https://github.com/mother-of-all-self-hosting/ansible-role-postgres), both of which are maintained by the [Mother-of-All-Self-Hosting (MASH)](https://github.com/mother-of-all-self-hosting) team.
+If you are looking for Ansible roles for them, you can check out [ansible-role-postgres](https://github.com/mother-of-all-self-hosting/ansible-role-postgres) and [ansible-role-redis](https://github.com/mother-of-all-self-hosting/ansible-role-redis), both of which are maintained by the [Mother-of-All-Self-Hosting (MASH)](https://github.com/mother-of-all-self-hosting) team. The role for [Valkey](https://valkey.io/) ([ansible-role-valkey](https://github.com/mother-of-all-self-hosting/ansible-role-valkey)) is available as well.
 
 ## Adjusting the playbook configuration
 
@@ -67,13 +67,22 @@ After adjusting the hostname, make sure to adjust your DNS records to point the 
 
 **Note**: hosting Outline under a subpath (by configuring the `outline_path_prefix` variable) does not seem to be possible due to Outline's technical limitations.
 
-### Set a random string for JWT tokens verification
+### Set random 32-byte hex digits for secret key
 
-You also need to set a random string used for verifying issued JWT tokens. To do so, add the following configuration to your `vars.yml` file. The value can be generated with `pwgen -s 64 1` or in another way.
+You also need to set random **32-byte hex digits** for the secret key. To do so, add the following configuration to your `vars.yml` file. The value can be generated with `openssl rand -hex 32` or in another way.
 
 ```yaml
-outline_environment_variables_service_secret: YOUR_SECRET_KEY_HERE
+outline_environment_variable_secret_key: YOUR_SECRET_KEY_HERE
 ```
+
+### Configure authentication methods
+
+For Outline to work, at least one [authentication method](https://docs.getoutline.com/s/hosting/doc/authentication-7ViKRmRY5o) must be enabled. Refer to [`defaults/main.yml`](../defaults/main.yml) for the `outline_environment_variable_*` variables to be used for authentication.
+
+If SMTP settings are defined (see the `outline_environment_variable_smtp_*` variables in `defaults/main.yml`), the [Email magic link](https://docs.getoutline.com/s/hosting/doc/email-magic-link-N2CPh5tmTS) authentication method will be enabled.
+
+>[!NOTE]
+> Even with SMTP settings being defined, we haven't been able to get Outline to successfully send emails yet, hitting issues similar to [this one](https://github.com/outline/outline/discussions/2605).
 
 ### Configuring database
 
@@ -136,6 +145,25 @@ Make sure to replace `YOUR_REDIS_SERVER_HOSTNAME_HERE` with your own value.
 
 If you are looking for an Ansible role for Redis, you can check out [ansible-role-redis](https://github.com/mother-of-all-self-hosting/ansible-role-redis) maintained by the [Mother-of-All-Self-Hosting (MASH)](https://github.com/mother-of-all-self-hosting) team. The role for Valkey ([ansible-role-valkey](https://github.com/mother-of-all-self-hosting/ansible-role-valkey)) is available as well.
 
+### Configuring file storage
+
+Outline supports multiple [file storage](https://docs.getoutline.com/s/hosting/doc/file-storage-N4M0T6Ypu7) mechanisms.
+
+The default configuration stores files locally in a `data` directory, but you can also stores files on AWS S3 (or [compatible S3 alternative](https://docs.getoutline.com/s/hosting/doc/file-storage-N4M0T6Ypu7#h-s3-compatible-services)).
+
+To enable S3 storage, add the following to your `vars.yml` configuration:
+
+```yml
+outline_environment_variable_file_storage: s3
+
+outline_environment_variable_aws_access_key_id: ''
+outline_environment_variable_aws_secret_access_key: ''
+outline_environment_variable_aws_region: eu-central-1 # example
+outline_environment_variable_aws_s3_upload_bucket_url: https://OUTLINE_ASSETS_BUCKET_NAME.s3.eu-central-1.amazonaws.com
+outline_environment_variable_aws_s3_upload_bucket_name: OUTLINE_ASSETS_BUCKET_NAME
+outline_environment_variable_aws_s3_force_path_style: false
+```
+
 ### Extending the configuration
 
 There are some additional things you may wish to configure about the service.
@@ -143,8 +171,6 @@ There are some additional things you may wish to configure about the service.
 Take a look at:
 
 - [`defaults/main.yml`](../defaults/main.yml) for some variables that you can customize via your `vars.yml` file. You can override settings (even those that don't have dedicated playbook variables) using the `outline_environment_variables_additional_variables` variable
-
-Refer to [the official documentation](https://outline.io/docs/config-options/) for a complete list of Outline's config options that you can put in `outline_environment_variables_additional_variables`.
 
 ## Installing
 
@@ -171,5 +197,5 @@ You can find the logs in [systemd-journald](https://www.freedesktop.org/software
 If you want to increase the verbosity, add the following configuration to your `vars.yml` file:
 
 ```yaml
-outline_environment_variables_log_level: DEBUG
+outline_environment_variable_log_level: DEBUG
 ```
