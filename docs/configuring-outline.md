@@ -77,42 +77,37 @@ outline_environment_variables_service_secret: YOUR_SECRET_KEY_HERE
 
 ### Configuring database
 
-#### Specify database
+#### Set variables for the database server
 
-It is necessary to select database used by Outline from a MySQL compatible database, Postgres, and SQLite.
-
-To use Postgres, add the following configuration to your `vars.yml` file:
+To have the Outline instance connect to your Postgres server, add the following configuration to your `vars.yml` file.
 
 ```yaml
-outline_database_type: postgres
+outline_database_username: YOUR_POSTGRES_SERVER_USERNAME_HERE
+outline_database_password: YOUR_POSTGRES_SERVER_PASSWORD_HERE
+outline_database_name: YOUR_POSTGRES_SERVER_DATABASE_NAME_HERE
 ```
 
-Set `mysql` to use a MySQL compatible database and `sqlite` to use SQLite, respectively. The SQLite database is stored in the directory specified with `outline_database_path`.
-
-For other settings, check variables such as `outline_database_postgres_*` and `outline_database_mysql_*` on [`defaults/main.yml`](../defaults/main.yml).
+Make sure to replace the placeholders with your own values.
 
 #### Configuring connection to the database server (optional)
 
-By default the role is configured to establish the connection to the database server via a Unix socket. You can mount the Unix socket by adding the following configuration to your `vars.yml` file:
+By default the role is configured to establish connection with the Postgres server via the Unix socket. You can mount the Unix socket by adding the following configuration to your `vars.yml` file:
 
 ```yaml
-# Specify the path to the MySQL compatible server's Unix socket path on the host (bind-mount source)
-outline_database_mysql_socket_path_host: ""
-
 # Specify the path to the Postgres Unix socket path on the host (bind-mount source)
-outline_database_postgres_socket_path_host: ""
+outline_database_socket_path_host: ""
 ```
 
-Setting it enables to connect to the database server via Unix socket mounted in the container.
+Setting it enables to connect to the Postgres server via Unix socket mounted in the container at `/run-postgres/.s.PGSQL.5432`.
 
 If TCP connection is preferred, connection via the Unix socket can be disabled by adding the following configuration to your `vars.yml` file:
 
 ```yaml
-# Disable the connection to the MySQL compatible server via a Unix socket
-outline_database_mysql_socket_enabled: false
+# Disable the connection to Postgres server via a Unix socket
+outline_database_socket_enabled: false
 
-# Disable the connection to the Postgres server via a Unix socket
-outline_database_postgres_socket_enabled: false
+outline_database_hostname: YOUR_POSTGRES_SERVER_HOSTNAME_HERE
+outline_database_port: 5432
 ```
 
 ### Configuring a Redis database (optional)
