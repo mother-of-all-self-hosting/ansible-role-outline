@@ -251,7 +251,7 @@ outline_database_socket_path_host: ""
 outline_database_socket_path_container: /run-postgres
 
 outline_environment_variable_database_url: |-
-  postgres://{{ outline_database_username }}:{{ outline_database_password }}@
+  postgres://{{ outline_database_username | urlencode | replace('/', '%2F') }}:{{ outline_database_password | urlencode | replace('/', '%2F') }}@
   {%- if outline_database_socket_enabled -%}
   localhost/{{ outline_database_name }}?host={{ outline_database_socket_path_container }}
   {%- else -%}
@@ -290,9 +290,9 @@ outline_redis_socket_path_host: ""
 
 outline_environment_variable_redis_url: |-
   {% if outline_redis_socket_enabled %}
-  unix://{{ outline_redis_socket_path_container }}{{ outline_redis_socket_path }}?db={{ outline_redis_database }}{{ '&password=' + outline_redis_password if outline_redis_password }}
+  unix://{{ outline_redis_socket_path_container }}{{ outline_redis_socket_path }}?db={{ outline_redis_database }}{{ '&password=' + (outline_redis_password | urlencode | replace('/', '%2F')) if outline_redis_password }}
   {% else %}
-  redis://:{{ outline_redis_password }}@{{ outline_redis_hostname }}:{{ outline_redis_port }}/{{ outline_redis_database }}
+  redis://:{{ outline_redis_password | urlencode | replace('/', '%2F') }}@{{ outline_redis_hostname }}:{{ outline_redis_port }}/{{ outline_redis_database }}
   {%- endif -%}
 
 ########################################################################
