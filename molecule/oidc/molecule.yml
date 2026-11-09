@@ -80,8 +80,8 @@ provisioner:
         outline_environment_variable_oidc_display_name: Molecule OIDC
 
         # Variables required for Outline to connect to the Postgres database (via Unix socket)
-        outline_database_username: my_database_username
-        outline_database_password: my_database_password
+        outline_database_username: /#@my_database_username?%
+        outline_database_password: /#@my_database_password?%
         outline_database_sslmode: disable
         outline_database_name: outline
         outline_database_socket_enabled: true
