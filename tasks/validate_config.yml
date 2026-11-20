@@ -32,9 +32,6 @@
   with_items:
     - { "name": "outline_uid", when: true }
     - { "name": "outline_gid", when: true }
-    - { "name": "outline_hostname", when: true }
-    - { "name": "outline_path_prefix", when: true }
-    - { "name": "outline_container_network", when: true }
     - { "name": "outline_database_socket_path_host", when: "{{ outline_database_socket_enabled }}" }
     - { "name": "outline_database_hostname", when: "{{ not outline_database_socket_enabled }}" }
     - { "name": "outline_database_password", when: true }
