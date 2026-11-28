@@ -69,6 +69,7 @@
               {{ outline_container_network }}
           register: outline_network_deletion_result
           changed_when: outline_container_network in outline_network_deletion_result.stdout
+          failed_when: outline_network_deletion_result.rc != 0 and 'not found' not in outline_network_deletion_result.stderr
 
 - name: Check existence of Outline local data path
   ansible.builtin.stat:
