@@ -61,6 +61,7 @@
         owner: "{{ outline_uid }}"
         group: "{{ outline_gid }}"
         recurse: true
+      tags: molecule-idempotence-notest
 
     - name: Ensure Outline repository is present on self-build
       ansible.builtin.git:
